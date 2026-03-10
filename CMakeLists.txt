@@ -14,6 +14,7 @@ include(cmake/Bundler.cmake)
 include(cmake/CompilerOptions.cmake)
 include(cmake/CPM.cmake)
 include(cmake/dependencies.cmake)
+include(cmake/softfloat.cmake)
 
 add_subdirectory(lib)
 add_subdirectory(sim_lib)

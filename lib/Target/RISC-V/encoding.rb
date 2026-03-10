@@ -30,6 +30,10 @@ module SimInfra
   def xreg(name)
     [name, :r32, "let :#{name}, :XRegs, [:op], :r32, f_#{name}"]
   end
+
+  def freg(name)
+    [name, :f64, "let :#{name}, :FRegs, [:op], :f64, f_#{name}"]
+  end
 end
 
 module SimInfra
@@ -55,35 +59,57 @@ module SimInfra
   def format_r4_fp(opcode, funct2)
     [:R4_FP, [
       field(:f_opcode, 6, 0, opcode),
-      field(:f_rd, 11, 7),
+      field(:f_frd, 11, 7),
       field(:f_rm, 14, 12),
-      field(:f_rs1, 19, 15),
-      field(:f_rs2, 24, 20),
-      field(:f_rs3, 31, 27),
+      field(:f_frs1, 19, 15),
+      field(:f_frs2, 24, 20),
+      field(:f_frs3, 31, 27),
       field(:f_funct2, 26, 25, funct2)
-    ], xreg(:rs3), xreg(:rs2), xreg(:rs1), xreg(:rd)]
+    ], freg(:frs3), freg(:frs2), freg(:frs1), freg(:frd)]
   end
 
   def format_r_fp(opcode, funct7)
     [:R_FP, [
       field(:f_opcode, 6, 0, opcode),
-      field(:f_rd, 11, 7),
+      field(:f_frd, 11, 7),
       field(:f_rm, 14, 12),
-      field(:f_rs1, 19, 15),
-      field(:f_rs2, 24, 20),
+      field(:f_frs1, 19, 15),
+      field(:f_frs2, 24, 20),
       field(:f_funct7, 31, 25, funct7)
-    ], xreg(:rs2), xreg(:rs1), xreg(:rd)]
+    ], freg(:frs2), freg(:frs1), freg(:frd)]
+  end
+
+  def format_r_fp_comp(opcode, funct3, funct7)
+    [:R_FP_COMP, [
+      field(:f_opcode, 6, 0, opcode),
+      field(:f_rd, 11, 7),
+      field(:f_funct3, 14, 12, funct3),
+      field(:f_frs1, 19, 15),
+      field(:f_frs2, 24, 20),
+      field(:f_funct7, 31, 25, funct7)
+    ], freg(:frs2), freg(:frs1), xreg(:rd)]
+  end
+
+  def format_r_fp_no_rm(opcode, funct3, funct7)
+    [:R_FP_NO_RM, [
+      field(:f_opcode, 6, 0, opcode),
+      field(:f_frd, 11, 7),
+      field(:f_funct3, 14, 12, funct3),
+      field(:f_frs1, 19, 15),
+      field(:f_frs2, 24, 20),
+      field(:f_funct7, 31, 25, funct7)
+    ], freg(:frs2), freg(:frs1), freg(:frd)]
   end
 
   def format_r_fp_fcvt(opcode, funct5, funct7)
     [:R_FCVT, [
       field(:f_opcode, 6, 0, opcode),
-      field(:f_rd, 11, 7),
+      field(:f_frd, 11, 7),
       field(:f_rm, 14, 12),
-      field(:f_rs1, 19, 15),
+      field(:f_frs1, 19, 15),
       field(:f_funct5, 24, 20, funct5),
       field(:f_funct7, 31, 25, funct7)
-    ], xreg(:rs1), xreg(:rd)]
+    ], freg(:frs1), freg(:frd)]
   end
 
   def format_i(opcode, funct3)

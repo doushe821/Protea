@@ -4,6 +4,7 @@
 require 'ADL/base'
 require 'ADL/builder'
 require 'Target/RISC-V/32I'
+require 'Target/RISC-V/64F'
 
 require 'yaml'
 

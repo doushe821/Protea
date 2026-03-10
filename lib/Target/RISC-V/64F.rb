@@ -18,7 +18,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0000000))
     asm { 'fadd.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_add(frs1, frs2, rm_val)
+      frd[] = f32_add(frs1, frs2)
     end
   end
 
@@ -26,7 +26,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0000001))
     asm { 'fadd.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_add(frs1, frs2, rm_val)
+      frd[] = f64_add(frs1, frs2)
     end
   end
 
@@ -34,7 +34,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0000100))
     asm { 'fsub.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_sub(frs1, frs2, rm_val)
+      frd[] = f32_sub(frs1, frs2)
     end
   end
 
@@ -42,7 +42,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0000101))
     asm { 'fsub.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_sub(frs1, frs2, rm_val)
+      frd[] = f64_sub(frs1, frs2)
     end
   end
 
@@ -50,7 +50,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0001000))
     asm { 'fmul.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_mul(frs1, frs2, rm_val)
+      frd[] = f32_mul(frs1, frs2)
     end
   end
 
@@ -58,7 +58,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0001001))
     asm { 'fmul.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_mul(frs1, frs2, rm_val)
+      frd[] = f64_mul(frs1, frs2)
     end
   end
 
@@ -66,7 +66,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0001100))
     asm { 'fdiv.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_div(frs1, frs2, rm_val)
+      frd[] = f32_div(frs1, frs2)
     end
   end
 
@@ -74,7 +74,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0001101))
     asm { 'fdiv.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_div(frs1, frs2, rm_val)
+      frd[] = f32_div(frs1, frs2)
     end
   end
 
@@ -82,7 +82,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0101100))
     asm { 'fsqrt.s {frd}, {frs1}' }
     code do
-      frd[] = f32_sqrt(frs1, rm_val)
+      frd[] = f32_sqrt(frs1)
     end
   end
 
@@ -90,7 +90,7 @@ module RV64F
     encoding(*format_r_fp(0b1010011, funct7: 0b0101101))
     asm { 'fsqrt.d {frd}, {frs1}' }
     code do
-      frd[] = f64_sqrt(frs1, rm_val)
+      frd[] = f64_sqrt(frs1)
     end
   end
 
@@ -116,7 +116,7 @@ module RV64F
     encoding(*format_r4_fp(0b1000011))
     asm { 'fmadd.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mulAdd(frs1, frs2, frs3, rm_val)
+      frd[] = f32_mul_add(frs1, frs2, frs3)
     end
   end
 
@@ -124,7 +124,7 @@ module RV64F
     encoding(*format_r4_fp(0b1000011, funct2: 0b01))
     asm { 'fmadd.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mulAdd(frs1, frs2, frs3, rm_val)
+      frd[] = f64_mul_add(frs1, frs2, frs3)
     end
   end
 
@@ -132,7 +132,7 @@ module RV64F
     encoding(*format_r4_fp(0b1000111))
     asm { 'fmsub.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mulAdd(frs1, frs2, -frs3, rm_val)
+      frd[] = f32_mul_add(frs1, frs2, -frs3)
     end
   end
 
@@ -140,7 +140,7 @@ module RV64F
     encoding(*format_r4_fp(0b1000111, funct2: 0b01))
     asm { 'fmsub.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mulAdd(frs1, frs2, -frs3, rm_val)
+      frd[] = f64_mul_add(frs1, frs2, -frs3)
     end
   end
 
@@ -148,7 +148,7 @@ module RV64F
     encoding(*format_r4_fp(0b1001111))
     asm { 'fnmadd.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = -f32_mulAdd(frs1, frs2, frs3, rm_val)
+      frd[] = -f32_mul_add(frs1, frs2, frs3)
     end
   end
 
@@ -156,7 +156,7 @@ module RV64F
     encoding(*format_r4_fp(0b1001111, funct2: 0b01))
     asm { 'fnmadd.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = -f32_mulAdd(frs1, frs2, frs3, rm_val)
+      frd[] = -f32_mul_add(frs1, frs2, frs3)
     end
   end
 
@@ -164,13 +164,13 @@ module RV64F
     encoding(*format_r4_fp(0b1001011))
     asm { 'fnmsub.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = -f32_mulAdd(frs1, frs2, -frs3, rm_val)
+      frd[] = -f32_mul_add(frs1, frs2, -frs3)
     end
   end
 
   # Sign injection
   Instruction(:fsgnj_s) do
-    encoding(*format_r(0b1010011, funct7: 0b0010000, funct3: 0b000))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010000, funct3: 0b000))
     asm { 'fsgnj.s {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnj32(frs1, frs2)
@@ -178,7 +178,7 @@ module RV64F
   end
 
   Instruction(:fsgnj_d) do
-    encoding(*format_r(0b1010011, funct7: 0b0010001, funct3: 0b000))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010001, funct3: 0b000))
     asm { 'fsgnj.d {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnj64(frs1, frs2)
@@ -186,7 +186,7 @@ module RV64F
   end
 
   Instruction(:fsgnjn_s) do
-    encoding(*format_r(0b1010011, funct7: 0b0010000, funct3: 0b001))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010000, funct3: 0b001))
     asm { 'fsgnjn.s {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnjn32(frs1, frs2)
@@ -194,7 +194,7 @@ module RV64F
   end
 
   Instruction(:fsgnjn_d) do
-    encoding(*format_r(0b1010011, funct7: 0b0010001, funct3: 0b001))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010001, funct3: 0b001))
     asm { 'fsgnjn.d {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnjn64(frs1, frs2)
@@ -202,7 +202,7 @@ module RV64F
   end
 
   Instruction(:fsgnjx_s) do
-    encoding(*format_r(0b1010011, funct7: 0b0010000, funct3: 0b010))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010000, funct3: 0b010))
     asm { 'fsgnjx.s {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnjx32(frs1, frs2)
@@ -210,7 +210,7 @@ module RV64F
   end
 
   Instruction(:fsgnjx_d) do
-    encoding(*format_r(0b1010011, funct7: 0b0010000, funct3: 0b010))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010000, funct3: 0b010))
     asm { 'fsgnjx.d {frd}, {frs1}, {frs2}' }
     code do
       frd[] = fsgnjx64(frs1, frs2)
@@ -219,7 +219,7 @@ module RV64F
 
   # Comparisons
   Instruction(:fmin_s) do
-    encoding(*format_r(0b1010011, funct7: 0b0010100, funct3: 0b000))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010100, funct3: 0b000))
     asm { 'fmin.s {frd}, {frs1}, {frs2}' }
     code do
       frd[] = f32_min(frs1, frs2)
@@ -227,7 +227,7 @@ module RV64F
   end
 
   Instruction(:fmin_d) do
-    encoding(*format_r(0b1010011, funct7: 0b0010101, funct3: 0b000))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010101, funct3: 0b000))
     asm { 'fmin.d {frd}, {frs1}, {frs2}' }
     code do
       frd[] = f64_min(frs1, frs2)
@@ -243,7 +243,7 @@ module RV64F
   end
 
   Instruction(:fmax_d) do
-    encoding(*format_r(0b1010011, funct7: 0b0010101, funct3: 0b001))
+    encoding(*format_r_no_rm(0b1010011, funct7: 0b0010101, funct3: 0b001))
     asm { 'fmax.s {frd}, {frs1}, {frs2}' }
     code do
       frd[] = f64_max(frs1, frs2)
@@ -251,7 +251,7 @@ module RV64F
   end
 
   Instruction(:feq_s) do
-    encoding(*format_r(0b1010011, funct7: 0b1010000, funct3: 0b010))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010000, funct3: 0b010))
     asm { 'feq.s {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f32_eq(frs1, frs2)
@@ -259,7 +259,7 @@ module RV64F
   end
 
   Instruction(:feq_d) do
-    encoding(*format_r(0b1010011, funct7: 0b1010001, funct3: 0b010))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010001, funct3: 0b010))
     asm { 'feq.s {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f64_eq(frs1, frs2)
@@ -267,7 +267,7 @@ module RV64F
   end
 
   Instruction(:flt_s) do
-    encoding(*format_r(0b1010011, funct7: 0b1010000, funct3: 0b001))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010000, funct3: 0b001))
     asm { 'flt.s {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f32_lt(frs1, frs2)
@@ -275,7 +275,7 @@ module RV64F
   end
 
   Instruction(:flt_d) do
-    encoding(*format_r(0b1010011, funct7: 0b1010001, funct3: 0b001))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010001, funct3: 0b001))
     asm { 'flt.d {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f64_lt(frs1, frs2)
@@ -283,7 +283,7 @@ module RV64F
   end
 
   Instruction(:fle_s) do
-    encoding(*format_r(0b1010011, funct7: 0b1010000, funct3: 0b000))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010000, funct3: 0b000))
     asm { 'fle.s {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f32_le(frs1, frs2)
@@ -291,7 +291,7 @@ module RV64F
   end
 
   Instruction(:fle_d) do
-    encoding(*format_r(0b1010011, funct7: 0b1010001, funct3: 0b000))
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1010001, funct3: 0b000))
     asm { 'fle.d {rd}, {frs1}, {frs2}' }
     code do
       rd[] = f64_le(frs1, frs2)
@@ -303,7 +303,7 @@ module RV64F
     encoding(*format_r_fp_fcvt(0b1010011, funct7: 0b1100000, funct5: 0b00000))
     asm { 'fcvt.w.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_i32(frs1, rm_val)
+      rd[] = f32_to_i32(frs1)
     end
   end
 
@@ -311,7 +311,7 @@ module RV64F
     encoding(*format_r_fp_fcvt(0b1010011, funct7: 0b1100000, funct5: 0b00001))
     asm { 'fcvt.wu.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_u32(frs1, rm_val)
+      rd[] = f32_to_u32(frs1)
     end
   end
 
@@ -319,7 +319,7 @@ module RV64F
     encoding(*format_r_fp_fcvt(0b1010011, funct7: 0b1100000, funct5: 0b00010))
     asm { 'fcvt.l.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_i64(frs1, rm_val)
+      rd[] = f32_to_i64(frs1)
     end
   end
 
@@ -327,7 +327,7 @@ module RV64F
     encoding(*format_r_fp_fcvt(0b1010011, funct7: 0b1100000, funct5: 0b00011))
     asm { 'fcvt.lu.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_u64(frs1, rm_val)
+      rd[] = f32_to_u64(frs1)
     end
   end
 
@@ -364,8 +364,8 @@ module RV64F
   end
 
   # Classification
-  Instruction(:fclass_s) do
-    encoding(*format_r(0b1010011, funct7: 0b1110000, funct3: 0b001))
+  Instruction(:fclass_s) do # might need separate format
+    encoding(*format_r_fp_comp(0b1010011, funct7: 0b1110000, funct3: 0b001))
     asm { 'fclass.s {rd}, {frs1}' }
     code do
       rd[] = f32_classify(frs1)
