@@ -41,6 +41,6 @@ add_executable(sim ${PROTEA_SIMGEN_OUTPUT_SOURCES}
   ${protea_simlib_SOURCE_DIR}/memory.cc)
   
 target_include_directories(sim PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${protea_simlib_SOURCE_DIR})
-target_link_libraries(sim elfio CLI11 fmt)
+target_link_libraries(sim elfio CLI11 fmt softfloat)
 target_compile_features(sim PRIVATE cxx_std_23)
 install(TARGETS sim)
