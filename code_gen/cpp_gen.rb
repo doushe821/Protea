@@ -22,6 +22,43 @@ module CodeGen
       emitter.emit_line("#{dst} = #{src1} #{op_str} #{src2};")
     end
 
+    def emit_fp_binary(opname, operation)
+      dst  = map_operand(operation[:oprnds][0])
+      src1 = map_operand(operation[:oprnds][1])
+      src2 = map_operand(operation[:oprnds][2])
+
+      @emitter.emit_line("#{dst} = #{opname}(#{src1}, #{src2});")
+    end
+
+    def emit_fp_unary(opname, operation)
+      dst = map_operand(operation[:oprnds][0])
+      src = map_operand(operation[:oprnds][1])
+
+      @emitter.emit_line("#{dst} = #{opname}(#{src});")
+    end
+
+    def emit_fp_ternary(opname, operation)
+      dst = map_operand(operation[:oprnds][0])
+      src1 = map_operand(operation[:oprnds][1])
+      src2 = map_operand(operation[:oprnds][2])
+      src3 = map_operand(operation[:oprnds][3])
+
+      @emitter.emit_line("#{dst} = #{opname}(#{src1}, #{src2}, #{src3});")
+    end
+
+    def map_n_operands(op, n)
+      ops = []
+      (0...n).each do |i|
+        ops[i] = map_operand(op[:oprnds][i])
+      end
+      ops
+    end
+
+    def map_operand(op)
+      val = @mapping[op[:name]] || op[:name]
+      val.nil? ? op[:value] : val
+    end
+
     def self.generate_statement(operation)
       emitter = Utility::GenEmitter.new
       CppGenerator.new(emitter, operation[:attrs][:mapping]).generate_statement(operation)
@@ -136,6 +173,125 @@ module CodeGen
         false_val = @mapping[operation[:oprnds][3][:name]] || operation[:oprnds][3][:name]
 
         @emitter.emit_line("#{dst} = #{cond} ? #{true_val} : #{false_val};")
+
+      # Floating point arithmetic binary operations
+      when :f32_add then emit_fp_binary('f32_add', operation)
+      when :f64_add then emit_fp_binary('f64_add', operation)
+
+      when :f32_sub then emit_fp_binary('f32_sub', operation)
+      when :f64_sub then emit_fp_binary('f64_sub', operation)
+
+      when :f32_mul then emit_fp_binary('f32_mul', operation)
+      when :f64_mul then emit_fp_binary('f64_mul', operation)
+
+      when :f32_div then emit_fp_binary('f32_div', operation)
+      when :f64_div then emit_fp_binary('f64_div', operation)
+      # Floating point unary operations
+      when :f32_sqrt then emit_fp_unary('f32_sqrt', operation)
+      when :f64_sqrt then emit_fp_unary('f64_sqrt', operation)
+      # Floating point fused operations
+      when :f32_mul_add then emit_fp_ternary('f32_mulAdd', operation)
+      when :f64_mul_add then emit_fp_ternary('f64_mulAdd', operation)
+      when :f32_mul_sub
+        dst, src1, src2, src3 = map_n_operands(operation, 4)
+        @emitter.emit_line("#{dst} = f32_mulAdd(#{src1}, #{src2}, -#{src3});")
+      when :f64_mul_sub
+        dst, src1, src2, src3 = map_n_operands(operation, 4)
+        @emitter.emit_line("#{dst} = f64_mulAdd(#{src1}, #{src2}, -#{src3});")
+      when :f32_mul_sub_n
+        dst, src1, src2, src3 = map_n_operands(operation, 4)
+        @emitter.emit_line("#{dst} = f32_mulAdd(-#{src1}, #{src2}, -#{src3});")
+      when :f64_mul_sub_n
+        dst, src1, src2, src3 = map_n_operands(operation, 4)
+        @emitter.emit_line("#{dst} = f64_mulAdd(-#{src1}, #{src2}, -#{src3});")
+      # Floating point comparison operations
+      when :f32_eq then emit_fp_binary('f32_eq', operation)
+      when :f64_eq then emit_fp_binary('f64_eq', operation)
+      when :f32_lt then emit_fp_binary('f32_lt', operation)
+      when :f64_lt then emit_fp_binary('f64_lt', operation)
+      when :f32_le then emit_fp_binary('f32_le', operation)
+      when :f64_le then emit_fp_binary('f64_le', operation)
+      when :f32_min then emit_fp_binary('f32_min', operation)
+      when :f64_min then emit_fp_binary('f64_min', operation)
+      when :f32_max then emit_fp_binary('f32_max', operation)
+      when :f64_max then emit_fp_binary('f64_max', operation)
+      # Floating point injections
+      when :f32_sign_injection
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffff) | (#{src2} & 0x80000000);")
+      when :f64_sign_injection
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffffffffffffULL) | (#{src2} & 0x8000000000000000ULL);")
+      when :f32_sign_injection_n
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffff) | (~#{src2} & 0x80000000);")
+      when :f64_sign_injection_n
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffffffffffffULL) | (~#{src2} & 0x8000000000000000ULL);")
+      when :f32_sign_xor
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = #{src1} ^ (#{src2} & 0x80000000);")
+      when :f64_sign_xor
+        dst, src1, src2 = map_n_operands(operation, 3)
+        @emitter.emit_line("#{dst} = #{src1} ^ (#{src2} & 0x8000000000000000ULL);")
+      # Floating point conversions
+      when :f32_to_i32 then emit_fp_unary('f32_to_i32', operation)
+      when :f32_to_u32 then emit_fp_unary('f32_to_ui32', operation)
+      when :f32_to_i64 then emit_fp_unary('f32_to_i64', operation)
+      when :f32_to_u64 then emit_fp_unary('f32_to_ui64', operation)
+      when :i32_to_f32 then emit_fp_unary('i32_to_f32', operation)
+      when :u32_to_f32 then emit_fp_unary('ui32_to_f32', operation)
+      when :i64_to_f32 then emit_fp_unary('i64_to_f32', operation)
+      when :u64_to_f32 then emit_fp_unary('ui64_to_f32', operation)
+      # Classification
+      when :f32_classify
+        dst, src = map_n_operands(operation, 2)
+
+        @emitter.emit_line('{')
+        @emitter.emit_line("uint32_t _v = #{src};")
+        @emitter.emit_line('uint32_t _sign = _v >> 31;')
+        @emitter.emit_line('uint32_t _exp  = (_v >> 23) & 0xFF;')
+        @emitter.emit_line('uint32_t _frac = _v & 0x7FFFFF;')
+        @emitter.emit_line('')
+        @emitter.emit_line('if (_exp == 0xFF) {')
+        @emitter.emit_line("  if (_frac == 0) { #{dst} = _sign ? (1u << 0) : (1u << 7); }")
+        @emitter.emit_line("  else if (_frac & (1u << 22)) { #{dst} = (1u << 9); }")
+        @emitter.emit_line("  else { #{dst} = (1u << 8); }")
+        @emitter.emit_line('}')
+        @emitter.emit_line('else if (_exp == 0) {')
+        @emitter.emit_line("  if (_frac == 0) { #{dst} = _sign ? (1u << 3) : (1u << 4); }")
+        @emitter.emit_line("  else { #{dst} = _sign ? (1u << 2) : (1u << 5); }")
+        @emitter.emit_line('}')
+        @emitter.emit_line('else {')
+        @emitter.emit_line("  #{dst} = _sign ? (1u << 1) : (1u << 6);")
+        @emitter.emit_line('}')
+        @emitter.emit_line('}')
+
+      when :f64_classify
+        dst, src = map_n_operands(operation, 2)
+        @emitter.emit_line('{')
+        @emitter.emit_line("uint64_t v = #{src};")
+        @emitter.emit_line('uint64_t sign = v >> 63;')
+        @emitter.emit_line('uint64_t exp  = (v >> 52) & 0x7FF;')
+        @emitter.emit_line('uint64_t frac = v & 0xFFFFFFFFFFFFFULL;')
+        @emitter.emit_line('uint32_t r = 0;')
+        @emitter.emit_line('')
+        @emitter.emit_line('if (exp == 0x7FF) {')
+        @emitter.emit_line('  if (frac == 0) r = sign ? (1u << 0) : (1u << 7);')
+        @emitter.emit_line('  else r = (frac & (1ULL << 51)) ? (1u << 9) : (1u << 8);')
+        @emitter.emit_line('}')
+        @emitter.emit_line('else if (exp == 0) {')
+        @emitter.emit_line('  if (frac == 0) r = sign ? (1u << 3) : (1u << 4);')
+        @emitter.emit_line('  else r = sign ? (1u << 2) : (1u << 5);')
+        @emitter.emit_line('}')
+        @emitter.emit_line('else {')
+        @emitter.emit_line('  r = sign ? (1u << 1) : (1u << 6);')
+        @emitter.emit_line('}')
+        @emitter.emit_line('')
+        @emitter.emit_line("#{dst} = r;")
+        @emitter.emit_line('}')
+
+      else raise 'Unknown statement type, terminating program'
       end
     end
   end

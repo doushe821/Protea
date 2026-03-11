@@ -72,6 +72,32 @@ module SimInfra
       stmt op, [tmpvar(t), a, b]
     end
 
+    def getOpType(a)
+      Utility.get_type(a.type).typeof == :r ? ('b' + Utility.get_type(a.type).bitsize.to_s).to_sym : a.type
+    end
+
+    def unOp(a, op)
+      unOpWType(a, op, getOpType(a))
+    end
+
+    def unOpWType(a, op, t)
+      a = resolve_const(a)
+      stmt op, [tmpvar(t), a]
+    end
+
+    def ternOp(a, b, c, op)
+      ternOpWType(a, b, c, op, getOpType(a))
+    end
+
+    def ternOpWType(a, b, c, op, t)
+      a = resolve_const(a)
+      b = resolve_const(b)
+      c = resolve_const(c)
+      # TODO: check constant size <= bitsize(var)
+      # assert(a.type== b.type|| a.type == :iconst || b.type== :iconst)
+      stmt op, [tmpvar(t), a, b, c]
+    end
+
     # redefine! add & sub will never be the same
     def add(a, b) = binOp(a, b, :add)
     def sub(a, b) = binOp(a, b, :sub)
@@ -88,38 +114,55 @@ module SimInfra
     def eq(a, b) = binOpWType(a, b, :eq, :b1)
     def ne(a, b) = binOpWType(a, b, :ne, :b1)
 
-    def f32_add(a, b) = stmt(:f32_add, [a, b])
-    def f64_add(a, b) = stmt(:f64_add, [a, b])
-    def f32_sub(a, b) = stmt(:f32_sub, [a, b])
-    def f64_sub(a, b) = stmt(:f64_sub, [a, b])
-    def f32_mul(a, b) = stmt(:f32_mul, [a, b])
-    def f64_mul(a, b) = stmt(:f64_mul, [a, b])
-    def f32_div(a, b) = stmt(:f32_div, [a, b])
-    def f64_div(a, b) = stmt(:f64_div, [a, b])
-    def f32_sqrt(a) = stmt(:f32_sqrt, [a])
-    def f64_sqrt(a) = stmt(:f64_sqrt, [a])
-    def f32_mul_add(a, b, c) = stmt(:f32_mulAdd, [a, b, c])
-    def f64_mul_add(a, b, c) = stmt(:f64_mulAdd, [a, b, c])
-    def f32_min(a, b) = stmt(:f32_min, [a, b])
-    def f64_min(a, b) = stmt(:f64_min, [a, b])
-    def f32_max(a, b) = stmt(:f32_max, [a, b])
-    def f64_max(a, b) = stmt(:f64_max, [a, b])
-    def f32_eq(a, b) = stmt(:f32_eq, [a, b])
-    def f64_eq(a, b) = stmt(:f64_eq, [a, b])
-    def f32_lt(a, b) = stmt(:f32_lt, [a, b])
-    def f64_lt(a, b) = stmt(:f64_lt, [a, b])
-    def f32_le(a, b) = stmt(:f32_le, [a, b])
-    def f64_le(a, b) = stmt(:f64_le, [a, b])
-    # Add injections with appropriate names
-    def f32_to_i32(a) = stmt(:f32_to_i32, [a])
-    def f32_to_u32(a) = stmt(:f32_to_u32, [a])
-    def f32_to_i64(a) = stmt(:f32_to_i64, [a])
-    def f32_to_u64(a) = stmt(:f32_to_u64, [a])
-    def i32_to_f32(a) = stmt(:i32_to_f32, [a])
-    def u32_to_f32(a) = stmt(:u32_to_f32, [a])
-    def i64_to_f32(a) = stmt(:i64_to_f32, [a])
-    def u64_to_f32(a) = stmt(:u64_to_f32, [a])
-    def classify(a) = stmt(:f32_classify, [a])
+    # Floating point operations
+    def f32_add(a, b) = binOp(a, b, :f32_add)
+    def f64_add(a, b) = binOp(a, b, :f64_add)
+    def f32_sub(a, b) = binOp(a, b, :f32_sub)
+    def f64_sub(a, b) = binOp(a, b, :f64_sub)
+    def f32_mul(a, b) = binOp(a, b, :f32_mul)
+    def f64_mul(a, b) = binOp(a, b, :f64_mul)
+    def f32_div(a, b) = binOp(a, b, :f32_div)
+    def f64_div(a, b) = binOp(a, b, :f64_div)
+
+    def f32_sqrt(a) = unOp(a, :f32_sqrt)
+    def f64_sqrt(a) = unOp(a, :f64_sqrt)
+
+    def f32_mul_add(a, b, c)   = ternOp(a, b, c, :f32_mul_add)
+    def f64_mul_add(a, b, c)   = ternOp(a, b, c, :f64_mul_add)
+    def f32_mul_sub(a, b, c)   = ternOp(a, b, c, :f32_mul_sub)
+    def f64_mul_sub(a, b, c)   = ternOp(a, b, c, :f64_mul_sub)
+    def f32_mul_add_n(a, b, c) = ternOp(a, b, c, :f32_mul_sub_n)
+    def f64_mul_add_n(a, b, c) = ternOp(a, b, c, :f64_mul_sub_n)
+    def f32_mul_sub_n(a, b, c) = ternOp(a, b, c, :f32_mul_sub_n)
+    def f64_mul_sub_n(a, b, c) = ternOp(a, b, c, :f64_mul_sub_n)
+
+    def f32_min(a, b) = binOp(a, b, :f32_min)
+    def f64_min(a, b) = binOp(a, b, :f64_min)
+    def f32_max(a, b) = binOp(a, b, :f32_max)
+    def f64_max(a, b) = binOp(a, b, :f64_max)
+    def f32_eq(a, b)  = binOp(a, b, :f32_eq)
+    def f64_eq(a, b)  = binOp(a, b, :f64_eq)
+    def f32_lt(a, b)  = binOp(a, b, :f32_lt)
+    def f64_lt(a, b)  = binOp(a, b, :f64_lt)
+    def f32_le(a, b)  = binOp(a, b, :f32_le)
+    def f64_le(a, b)  = binOp(a, b, :f64_le)
+    def f32_sign_injection(a, b) = binOp(a, b, :f32_sign_injection)
+    def f64_sign_injection(a, b) = binOp(a, b, :f64_sign_injection)
+    def f32_sign_injection_n(a, b) = binOp(a, b, :f32_sign_injection_n)
+    def f64_sign_injection_n(a, b) = binOp(a, b, :f64_sign_injection_n)
+    def f32_sign_xor(a, b) = binOp(a, b, :f32_sign_xor)
+    def f64_sign_xor(a, b) = binOp(a, b, :f64_sign_xor)
+
+    # TODO: unary op
+    def f32_to_i32(a) = unOp(a, :f32_to_i32)
+    def f32_to_u32(a) = unOp(a, :f32_to_u32)
+    def f32_to_i64(a) = unOp(a, :f32_to_i64)
+    def f32_to_u64(a) = unOp(a, :f32_to_u64)
+    def i32_to_f32(a) = unOp(a, :i32_to_f32)
+    def u32_to_f32(a) = unOp(a, :u32_to_f32)
+    def i64_to_f32(a) = unOp(a, :i64_to_f32)
+    def u64_to_f32(a) = unOp(a, :u64_to_f32)
+    def f32_classify(a) = unOp(a, :f32_classify)
 
     def select(p, a, b)
       a = resolve_const(a)
