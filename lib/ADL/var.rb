@@ -63,7 +63,6 @@ module SimInfra
 
     def method_missing(name, *regset)
       if regset.empty?
-        puts "name = #{name}"
         instance_eval "def #{name}(); @scope.cast(self, (#{name}).to_sym); end", __FILE__, __LINE__
         @scope.cast(self, name.to_sym)
       else

@@ -1,4 +1,4 @@
-require "Utility/gen_emitter"
+require 'Utility/gen_emitter'
 
 # Helper methods for Intermediate Representation
 module IRHelper
@@ -55,12 +55,11 @@ module IRHelper
 
   def ir2ruby(ir)
     isa_name = ir[:isa_name]
-    
+
     regfiles = generate_regfiles(ir[:regfiles]).to_s
     instructions = generate_instructions(ir[:instructions]).to_s
 
-
-"module #{isa_name.upcase}
+    "module #{isa_name.upcase}
 #{regfiles}
 
 #{instructions}
@@ -69,10 +68,9 @@ end
   end
 end
 
-
 require 'yaml'
 
 yaml_data = YAML.load_file('sim_lib/generated/IR.yaml')
-yaml_data[:isa_name] = "RISCV"
+yaml_data[:isa_name] = 'RISCV'
 
 puts IRHelper.ir2ruby(yaml_data)

@@ -90,6 +90,17 @@ module SimInfra
     ], freg(:frs2), freg(:frs1), xreg(:rd)]
   end
 
+  def format_r_fp_class(opcode, funct3, funct5, funct7)
+    [:R_FP_CLASS, [
+      field(:f_opcode, 6, 0, opcode),
+      field(:f_rd, 11, 7),
+      field(:f_funct3, 14, 12, funct3),
+      field(:f_frs1, 19, 15),
+      field(:f_funct5, 24, 20, funct5),
+      field(:f_funct7, 31, 25, funct7)
+    ], freg(:frs1), xreg(:rd)]
+  end
+
   def format_r_fp_no_rm(opcode, funct3, funct7)
     [:R_FP_NO_RM, [
       field(:f_opcode, 6, 0, opcode),

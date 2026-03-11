@@ -163,6 +163,7 @@ module SimInfra
     def i64_to_f32(a) = unOp(a, :i64_to_f32)
     def u64_to_f32(a) = unOp(a, :u64_to_f32)
     def f32_classify(a) = unOp(a, :f32_classify)
+    def f64_classify(a) = unOp(a, :f64_classify)
 
     def select(p, a, b)
       a = resolve_const(a)
@@ -241,7 +242,11 @@ module SimInfra
 
     def read_transform(operation_name, op)
       if op.class == Var && !op.regset.nil?
-        x = tmpvar(('b' + op.type.to_s[1..-1]).to_sym)
+        case op.regset
+        when :XRegs then x = tmpvar(('b' + op.type.to_s[1..-1]).to_sym)
+        when :FRegs then x = tmpvar(('f' + op.type.to_s[1..-1]).to_sym)
+        else raise 'Unknown regset'
+        end
         @tree << IrStmt.new(:readReg, [x, op], nil)
         x
       else

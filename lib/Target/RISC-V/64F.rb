@@ -388,16 +388,16 @@ module RV64F
   end
 
   # Classification
-  Instruction(:fclass_s) do # might need separate format
-    encoding(*format_r_fp_comp(0b1010011, 0b001, 0b1110000))
+  Instruction(:fclass_s) do
+    encoding(*format_r_fp_class(0b1010011, 0b001, 0b00000, 0b1110000))
     asm { 'fclass.s {rd}, {frs1}' }
     code do
       rd[] = f32_classify(frs1)
     end
   end
 
-  Instruction(:fclass_d) do # might need separate format
-    encoding(*format_r_fp_comp(0b1010011, 0b001, 0b1110000))
+  Instruction(:fclass_d) do
+    encoding(*format_r_fp_class(0b1010011, 0b001, 0b00000, 0b1110001))
     asm { 'fclass.d {rd}, {frs1}' }
     code do
       rd[] = f64_classify(frs1)

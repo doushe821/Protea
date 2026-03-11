@@ -28,7 +28,6 @@ module Utility
     return $ExistingTypes[sym] if $ExistingTypes.has_key?(sym)
 
     sym_str = sym.to_s
-    puts "boop, #{sym_str}"
     $ExistingTypes[sym] = Type.new(sym_str, sym_str.scan(/\d+/).last.to_i, sym_str[0].to_sym)
     $ExistingTypes[sym]
   end
