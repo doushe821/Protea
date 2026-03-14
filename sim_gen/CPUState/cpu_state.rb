@@ -132,10 +132,10 @@ module SimGen
 
       def generate_dump_func(regfiles)
         emitter = Utility::GenEmitter.new
-        emitter.emit_line("void CPU::dump(std::ostream &ost) const {")
+        emitter.emit_line('void CPU::dump(std::ostream &ost) const {')
         emitter.increase_indent
 
-        emitter.emit_line("fmt::println(ost, \"---CPU STATE DUMP---\");")
+        emitter.emit_line('fmt::println(ost, "---CPU STATE DUMP---");')
         regfiles.each do |regfile|
           regfile[:regs].each do |register|
             emitter.emit_line("fmt::print(ost, \"X[{:02}] = {:#010x} \", effIdx, get#{regfile[:name]}());")
@@ -154,7 +154,7 @@ module SimGen
   module CPUState
     module Header
       module_function
-      
+
       def generate_cpu_state(input_ir)
         pc_decl = Helper.generate_pc_decl(input_ir[:regfiles])
         pc_functions = Helper.generate_pc_functions(input_ir[:regfiles])
@@ -165,7 +165,7 @@ module SimGen
         increase_icount_func = Helper.increase_icount_func
 
         base_type = Utility::HelperCpp.gen_type input_ir[:regfiles][0][:regs][0][:size]
-"#ifndef GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
+        "#ifndef GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
 #define GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
 
 #include \"memory.hh\"

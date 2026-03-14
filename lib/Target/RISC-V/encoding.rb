@@ -31,7 +31,7 @@ module SimInfra
     [name, :r32, "let :#{name}, :XRegs, [:op], :r32, f_#{name}"]
   end
 
-  def freg(name)
+  def freg64(name)
     [name, :f64, "let :#{name}, :FRegs, [:op], :f64, f_#{name}"]
   end
 end

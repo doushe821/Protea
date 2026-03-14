@@ -1,4 +1,5 @@
 require 'Utility/helper_cpp'
+require 'Utility/fp_helper_cpp'
 # frozen_string_literal: true
 
 # Semantics Generator: Converts IR to C++ code
@@ -20,30 +21,148 @@ module CodeGen
       src2 = src2.nil? ? operation[:oprnds][2][:value] : src2
 
       emitter.emit_line("#{dst} = #{src1} #{op_str} #{src2};")
-    end
 
-    def emit_fp_binary(opname, operation)
+    def emit_fp_binary(opname, operation, dst_type:, src_types:)
       dst  = map_operand(operation[:oprnds][0])
       src1 = map_operand(operation[:oprnds][1])
       src2 = map_operand(operation[:oprnds][2])
 
-      @emitter.emit_line("#{dst} = #{opname}(#{src1}, #{src2});")
+      t1 = Utility.gen_typed_tmp(src1, src_types[0])
+      t2 = Utility.gen_typed_tmp(src2, src_types[1])
+      tr = Utility.gen_typed_tmp(dst,  dst_type)
+
+      if Utility::FP_INFO[src_types[0]]
+        info = Utility::FP_INFO[src_types[0]]
+        @emitter.emit_line("#{info[:c_type]} #{t1} = { #{info[:unpack]}(#{src1}) };")
+      else
+        ctype = Utility::INT_INFO[src_types[0]]
+        @emitter.emit_line("#{ctype} #{t1} = (#{ctype})(#{src1});")
+      end
+
+      if Utility::FP_INFO[src_types[1]]
+        info = Utility::FP_INFO[src_types[1]]
+        @emitter.emit_line("#{info[:c_type]} #{t2} = { #{info[:unpack]}(#{src2}) };")
+      else
+        ctype = Utility::INT_INFO[src_types[1]]
+        @emitter.emit_line("#{ctype} #{t2} = (#{ctype})(#{src2});")
+      end
+
+      if Utility::FP_INFO[dst_type]
+        ctype = Utility::FP_INFO[dst_type][:c_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{t1}, #{t2});")
+        pack = Utility::FP_INFO[dst_type][:pack]
+        @emitter.emit_line("#{dst} = #{pack % tr};")
+      else
+        ctype = Utility::INT_INFO[dst_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{t1}, #{t2});")
+        @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
+      end
     end
 
-    def emit_fp_unary(opname, operation)
+    def gen_fp_neg(tmp_name, type)
+      case type
+      when :f32 then "#{tmp_name}.v ^= 0x80000000U;"
+      when :f64 then "#{tmp_name}.v ^= 0x8000000000000000ULL;"
+      end
+    end
+
+    def emit_fp_unary(opname, operation, dst_type:, src_type:)
       dst = map_operand(operation[:oprnds][0])
       src = map_operand(operation[:oprnds][1])
 
-      @emitter.emit_line("#{dst} = #{opname}(#{src});")
+      ts = Utility.gen_typed_tmp(src, src_type)
+      tr = Utility.gen_typed_tmp(dst, dst_type)
+
+      if Utility::FP_INFO[src_type]
+        info = Utility::FP_INFO[src_type]
+        @emitter.emit_line("#{info[:c_type]} #{ts} = { #{info[:unpack]}(#{src}) };")
+      else
+        ctype = Utility::INT_INFO[src_type]
+        @emitter.emit_line("#{ctype} #{ts} = (#{ctype})(#{src});")
+      end
+
+      if Utility::FP_INFO[dst_type]
+        ctype = Utility::FP_INFO[dst_type][:c_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{ts});")
+        pack = Utility::FP_INFO[dst_type][:pack]
+        @emitter.emit_line("#{dst} = #{pack % tr};")
+      else
+        ctype = Utility::INT_INFO[dst_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{ts});")
+        @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
+      end
     end
 
-    def emit_fp_ternary(opname, operation)
-      dst = map_operand(operation[:oprnds][0])
+    def emit_fp_ternary(opname, operation,
+                        dst_type:,
+                        src_types:,
+                        negate_src: [])
+      dst  = map_operand(operation[:oprnds][0])
       src1 = map_operand(operation[:oprnds][1])
       src2 = map_operand(operation[:oprnds][2])
       src3 = map_operand(operation[:oprnds][3])
 
-      @emitter.emit_line("#{dst} = #{opname}(#{src1}, #{src2}, #{src3});")
+      srcs  = [src1, src2, src3]
+      svars = []
+
+      srcs.each_with_index do |src, i|
+        ty = src_types[i]
+        t  = Utility.gen_typed_tmp(src, ty)
+        svars << t
+
+        if Utility::FP_INFO[ty]
+          info = Utility::FP_INFO[ty]
+          @emitter.emit_line("#{info[:c_type]} #{t} = { #{info[:unpack]}(#{src}) };")
+          if negate_src.include?(i)
+            negf = ty == :f32 ? 'f32_neg' : 'f64_neg'
+            @emitter.emit_line("#{t} = #{negf}(#{t});")
+          end
+
+        else
+          ctype = Utility::INT_INFO[ty]
+          @emitter.emit_line("#{ctype} #{t} = (#{ctype})(#{src});")
+
+          @emitter.emit_line("#{t} = -#{t};") if negate_src.include?(i)
+        end
+      end
+
+      tr = Utility.gen_typed_tmp(dst, dst_type)
+      if Utility::FP_INFO[dst_type]
+        ctype = Utility::FP_INFO[dst_type][:c_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{svars.join(', ')});")
+        pack = Utility::FP_INFO[dst_type][:pack]
+        @emitter.emit_line("#{dst} = #{pack % tr};")
+      else
+        ctype = Utility::INT_INFO[dst_type]
+        @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{svars.join(', ')});")
+        @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
+      end
+    end
+
+    def emit_sign_inject(operation, width:, mode:)
+      dst, src1, src2 = map_n_operands(operation, 3)
+
+      mag_mask, sign_mask =
+        if width == 32
+          [Utility::F32_MAG_MASK, Utility::F32_SIGN_MASK]
+        else
+          [Utility::F64_MAG_MASK, Utility::F64_SIGN_MASK]
+        end
+
+      sign_expr =
+        case mode
+        when :copy   then "(#{src2} & #{sign_mask})"
+        when :neg    then "(~#{src2} & #{sign_mask})"
+        when :xor    then "(#{src1} ^ (#{src2} & #{sign_mask}))"
+        end
+
+      result = if mode == :xor
+                 sign_expr
+               else
+                 "(#{src1} & #{mag_mask}) | #{sign_expr}"
+               end
+      result = "0xFFFFFFFF00000000ULL | (uint64_t)(#{result})" if width == 32
+      @emitter.emit_line("#{dst} = #{result};")
     end
 
     def map_n_operands(op, n)
@@ -139,10 +258,10 @@ module CodeGen
         src_name = @mapping[operation[:oprnds][1][:name]] || operation[:oprnds][1][:name]
         expr = @mapping[operation[:oprnds][0][:name]] || operation[:oprnds][0][:name]
         expr = expr.nil? ? operation[:oprnds][0][:value] : expr
-
         @emitter.emit_line("#{expr} = #{cpu_read_reg(src)}<#{Utility::HelperCpp.gen_small_type(src[:type])}>(#{src_name});")
       when :writeReg
         dst = operation[:oprnds][0]
+        src = operation[:oprnds][1]
         dst_name = @mapping[operation[:oprnds][0][:name]] || operation[:oprnds][0][:name]
         expr = @mapping[operation[:oprnds][1][:name]] || operation[:oprnds][1][:name]
         expr = expr.nil? ? operation[:oprnds][1][:value] : expr
@@ -174,75 +293,134 @@ module CodeGen
 
         @emitter.emit_line("#{dst} = #{cond} ? #{true_val} : #{false_val};")
 
-      # Floating point arithmetic binary operations
-      when :f32_add then emit_fp_binary('f32_add', operation)
-      when :f64_add then emit_fp_binary('f64_add', operation)
+      # Floating point arithmetic operations
+      when :f32_add then emit_fp_binary('f32_add', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
 
-      when :f32_sub then emit_fp_binary('f32_sub', operation)
-      when :f64_sub then emit_fp_binary('f64_sub', operation)
+      when :f64_add then emit_fp_binary('f64_add', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
 
-      when :f32_mul then emit_fp_binary('f32_mul', operation)
-      when :f64_mul then emit_fp_binary('f64_mul', operation)
+      when :f32_sub then emit_fp_binary('f32_sub', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
 
-      when :f32_div then emit_fp_binary('f32_div', operation)
-      when :f64_div then emit_fp_binary('f64_div', operation)
-      # Floating point unary operations
-      when :f32_sqrt then emit_fp_unary('f32_sqrt', operation)
-      when :f64_sqrt then emit_fp_unary('f64_sqrt', operation)
-      # Floating point fused operations
-      when :f32_mul_add then emit_fp_ternary('f32_mulAdd', operation)
-      when :f64_mul_add then emit_fp_ternary('f64_mulAdd', operation)
-      when :f32_mul_sub
-        dst, src1, src2, src3 = map_n_operands(operation, 4)
-        @emitter.emit_line("#{dst} = f32_mulAdd(#{src1}, #{src2}, -#{src3});")
+      when :f64_sub then emit_fp_binary('f64_sub', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
+
+      when :f32_mul then emit_fp_binary('f32_mul', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
+
+      when :f64_mul then emit_fp_binary('f64_mul', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
+
+      when :f32_div then emit_fp_binary('f32_div', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
+
+      when :f64_div then emit_fp_binary('f64_div', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
+      when :f32_sqrt then emit_fp_unary('f32_sqrt', operation,
+                                        dst_type: :f32,
+                                        src_type: :f32)
+
+      when :f64_sqrt then emit_fp_unary('f64_sqrt', operation,
+                                        dst_type: :f64,
+                                        src_type: :f64)
+      when :f32_mul_add then emit_fp_ternary('f32_mulAdd', operation,
+                                             dst_type: :f32,
+                                             src_types: %i[f32 f32 f32])
+
+      when :f64_mul_add then emit_fp_ternary('f64_mulAdd', operation,
+                                             dst_type: :f64,
+                                             src_types: %i[f64 f64 f64])
       when :f64_mul_sub
-        dst, src1, src2, src3 = map_n_operands(operation, 4)
-        @emitter.emit_line("#{dst} = f64_mulAdd(#{src1}, #{src2}, -#{src3});")
-      when :f32_mul_sub_n
-        dst, src1, src2, src3 = map_n_operands(operation, 4)
-        @emitter.emit_line("#{dst} = f32_mulAdd(-#{src1}, #{src2}, -#{src3});")
+        emit_fp_ternary('f64_mulAdd', operation,
+                        dst_type: :f64,
+                        src_types: %i[f64 f64 f64],
+                        negate_src: [3])
       when :f64_mul_sub_n
-        dst, src1, src2, src3 = map_n_operands(operation, 4)
-        @emitter.emit_line("#{dst} = f64_mulAdd(-#{src1}, #{src2}, -#{src3});")
-      # Floating point comparison operations
-      when :f32_eq then emit_fp_binary('f32_eq', operation)
-      when :f64_eq then emit_fp_binary('f64_eq', operation)
-      when :f32_lt then emit_fp_binary('f32_lt', operation)
-      when :f64_lt then emit_fp_binary('f64_lt', operation)
-      when :f32_le then emit_fp_binary('f32_le', operation)
-      when :f64_le then emit_fp_binary('f64_le', operation)
-      when :f32_min then emit_fp_binary('f32_min', operation)
-      when :f64_min then emit_fp_binary('f64_min', operation)
-      when :f32_max then emit_fp_binary('f32_max', operation)
-      when :f64_max then emit_fp_binary('f64_max', operation)
+        emit_fp_ternary('f64_mulAdd', operation,
+                        dst_type: :f64,
+                        src_types: %i[f64 f64 f64],
+                        negate_src: [1, 3])
+      when :f32_eq then emit_fp_binary('f32_eq', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f32 f32])
+      when :f64_eq then emit_fp_binary('f64_eq', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f64 f64])
+      when :f32_lt then emit_fp_binary('f32_lt', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f32 f32])
+      when :f64_lt then emit_fp_binary('f64_lt', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f64 f64])
+      when :f32_le then emit_fp_binary('f32_le', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f32 f32])
+      when :f64_le then emit_fp_binary('f64_le', operation,
+                                       dst_type: :i32,
+                                       src_types: %i[f64 f64])
+      when :f32_min then emit_fp_binary('f32_min', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
+      when :f64_min then emit_fp_binary('f64_min', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
+      when :f32_max then emit_fp_binary('f32_max', operation,
+                                        dst_type: :f32,
+                                        src_types: %i[f32 f32])
+      when :f64_max then emit_fp_binary('f64_max', operation,
+                                        dst_type: :f64,
+                                        src_types: %i[f64 f64])
+      when :f32_mul_sub then emit_fp_ternary('f32_mulAdd', operation,
+                                             dst_type: :f32,
+                                             src_types: %i[f32 f32 f32],
+                                             negate_src: [2])
+      when :f32_mul_sub_n then emit_fp_ternary('f32_mulAdd', operation,
+                                               dst_type: :f32,
+                                               src_types: %i[f32 f32 f32],
+                                               negate_src: [0, 2])
+
       # Floating point injections
-      when :f32_sign_injection
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffff) | (#{src2} & 0x80000000);")
-      when :f64_sign_injection
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffffffffffffULL) | (#{src2} & 0x8000000000000000ULL);")
-      when :f32_sign_injection_n
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffff) | (~#{src2} & 0x80000000);")
-      when :f64_sign_injection_n
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = (#{src1} & 0x7fffffffffffffffULL) | (~#{src2} & 0x8000000000000000ULL);")
-      when :f32_sign_xor
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = #{src1} ^ (#{src2} & 0x80000000);")
-      when :f64_sign_xor
-        dst, src1, src2 = map_n_operands(operation, 3)
-        @emitter.emit_line("#{dst} = #{src1} ^ (#{src2} & 0x8000000000000000ULL);")
+      when :f32_sign_injection   then emit_sign_inject(operation, width: 32, mode: :copy)
+      when :f64_sign_injection   then emit_sign_inject(operation, width: 64, mode: :copy)
+
+      when :f32_sign_injection_n then emit_sign_inject(operation, width: 32, mode: :neg)
+      when :f64_sign_injection_n then emit_sign_inject(operation, width: 64, mode: :neg)
+
+      when :f32_sign_xor         then emit_sign_inject(operation, width: 32, mode: :xor)
+      when :f64_sign_xor         then emit_sign_inject(operation, width: 64, mode: :xor)
       # Floating point conversions
-      when :f32_to_i32 then emit_fp_unary('f32_to_i32', operation)
-      when :f32_to_u32 then emit_fp_unary('f32_to_ui32', operation)
-      when :f32_to_i64 then emit_fp_unary('f32_to_i64', operation)
-      when :f32_to_u64 then emit_fp_unary('f32_to_ui64', operation)
-      when :i32_to_f32 then emit_fp_unary('i32_to_f32', operation)
-      when :u32_to_f32 then emit_fp_unary('ui32_to_f32', operation)
-      when :i64_to_f32 then emit_fp_unary('i64_to_f32', operation)
-      when :u64_to_f32 then emit_fp_unary('ui64_to_f32', operation)
+      when :f32_to_i32 then emit_fp_unary('f32_to_i32', operation,
+                                          dst_type: :i32, src_type: :f32)
+
+      when :f32_to_u32 then emit_fp_unary('f32_to_ui32', operation,
+                                          dst_type: :u32, src_type: :f32)
+
+      when :f32_to_i64 then emit_fp_unary('f32_to_i64', operation,
+                                          dst_type: :i64, src_type: :f32)
+
+      when :f32_to_u64 then emit_fp_unary('f32_to_ui64', operation,
+                                          dst_type: :u64, src_type: :f32)
+
+      when :i32_to_f32 then emit_fp_unary('i32_to_f32', operation,
+                                          dst_type: :f32, src_type: :i32)
+
+      when :u32_to_f32 then emit_fp_unary('ui32_to_f32', operation,
+                                          dst_type: :f32, src_type: :u32)
+
+      when :i64_to_f32 then emit_fp_unary('i64_to_f32', operation,
+                                          dst_type: :f32, src_type: :i64)
+
+      when :u64_to_f32 then emit_fp_unary('ui64_to_f32', operation,
+                                          dst_type: :f32, src_type: :u64)
       # Classification
       when :f32_classify
         dst, src = map_n_operands(operation, 2)
