@@ -5,6 +5,7 @@ require_relative '../../ADL/builder'
 module RV64F
   include SimInfra
   extend SimInfra
+
   # NOTE: semantics now are just dummies, they will change in future
   # Register float regs in regfile
   RegisterFile(:FRegs) do
@@ -13,88 +14,102 @@ module RV64F
     end
   end
 
+  RV_64_F_ROUNDING_MODES = { RNE: 0b000, RTZ: 0b001, RDN: 0b010, RUP: 0b011,
+                             RMM: 0b100, DYN: 0b111 }.freeze
+  # Generic helper for any FP instruction with rounding mode
+  # Usage: fp_inst(:fadd_d) { |rm| encoding(...); asm {...}; code {...} }
+  def self.fp_inst(name, &block)
+    module_name = :RV64F
+    RV_64_F_ROUNDING_MODES.each do |rm_name, rm_value|
+      inst_name = :"#{name}_#{rm_name.to_s.downcase}"
+      bldr = InstructionInfoBuilder.new(inst_name, module_name)
+      bldr.instance_exec(rm_value, &block)
+      @@instructions << bldr.info
+    end
+  end
+
   # Basic arithmetic
-  Instruction(:fadd_s) do
-    encoding(*format_r_fp(0b1010011, 0b0000000))
+  fp_inst(:fadd_s) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0000000, rm))
     asm { 'fadd.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_add(frs1, frs2)
+      frd[] = f32_add(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fadd_d) do
-    encoding(*format_r_fp(0b1010011, 0b0000001))
+  fp_inst(:fadd_d) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0000001, rm))
     asm { 'fadd.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_add(frs1, frs2)
+      frd[] = f64_add(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fsub_s) do
-    encoding(*format_r_fp(0b1010011, 0b0000100))
+  fp_inst(:fsub_s) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0000100, rm))
     asm { 'fsub.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_sub(frs1, frs2)
+      frd[] = f32_sub(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fsub_d) do
-    encoding(*format_r_fp(0b1010011, 0b0000101))
+  fp_inst(:fsub_d) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0000101, rm))
     asm { 'fsub.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_sub(frs1, frs2)
+      frd[] = f64_sub(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fmul_s) do
-    encoding(*format_r_fp(0b1010011, 0b0001000))
+  fp_inst(:fmul_s) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0001000, rm))
     asm { 'fmul.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_mul(frs1, frs2)
+      frd[] = f32_mul(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fmul_d) do
-    encoding(*format_r_fp(0b1010011, 0b0001001))
+  fp_inst(:fmul_d) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0001001, rm))
     asm { 'fmul.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_mul(frs1, frs2)
+      frd[] = f64_mul(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fdiv_s) do
-    encoding(*format_r_fp(0b1010011, 0b0001100))
+  fp_inst(:fdiv_s) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0001100, rm))
     asm { 'fdiv.s {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f32_div(frs1, frs2)
+      frd[] = f32_div(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fdiv_d) do
-    encoding(*format_r_fp(0b1010011, 0b0001101))
+  fp_inst(:fdiv_d) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0001101, rm))
     asm { 'fdiv.d {frd}, {frs1}, {frs2}' }
     code do
-      frd[] = f64_div(frs1, frs2)
+      frd[] = f64_div(frs1, frs2, rm)
     end
   end
 
-  Instruction(:fsqrt_s) do
-    encoding(*format_r_fp(0b1010011, 0b0101100))
+  fp_inst(:fsqrt_s) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0101100, rm))
     asm { 'fsqrt.s {frd}, {frs1}' }
     code do
-      frd[] = f32_sqrt(frs1)
+      frd[] = f32_sqrt(frs1, rm)
     end
   end
 
-  Instruction(:fsqrt_d) do
-    encoding(*format_r_fp(0b1010011, 0b0101101))
+  fp_inst(:fsqrt_d) do |rm|
+    encoding(*format_r_fp(0b1010011, 0b0101101, rm))
     asm { 'fsqrt.d {frd}, {frs1}' }
     code do
-      frd[] = f64_sqrt(frs1)
+      frd[] = f64_sqrt(frs1, rm)
     end
   end
 
-  # Memory
+  # Memory (no rm field - unchanged)
   Instruction(:flw) do
     encoding(*format_i_fp(0b0000111, 0b010))
     asm { 'flw {frd}, {imm}({rs1})' }
@@ -128,71 +143,71 @@ module RV64F
   end
 
   # Fused Mul/Add
-  Instruction(:fmadd_s) do
-    encoding(*format_r4_fp(0b1000011, 0b0))
+  fp_inst(:fmadd_s) do |rm|
+    encoding(*format_r4_fp(0b1000011, 0b00, rm))
     asm { 'fmadd.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mul_add(frs1, frs2, frs3)
+      frd[] = f32_mul_add(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fmadd_d) do
-    encoding(*format_r4_fp(0b1000011, 0b01))
+  fp_inst(:fmadd_d) do |rm|
+    encoding(*format_r4_fp(0b1000011, 0b01, rm))
     asm { 'fmadd.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mul_add(frs1, frs2, frs3)
+      frd[] = f64_mul_add(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fmsub_s) do
-    encoding(*format_r4_fp(0b1000111, 0b0))
+  fp_inst(:fmsub_s) do |rm|
+    encoding(*format_r4_fp(0b1000111, 0b00, rm))
     asm { 'fmsub.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mul_sub(frs1, frs2, frs3)
+      frd[] = f32_mul_sub(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fmsub_d) do
-    encoding(*format_r4_fp(0b1000111, 0b01))
+  fp_inst(:fmsub_d) do |rm|
+    encoding(*format_r4_fp(0b1000111, 0b01, rm))
     asm { 'fmsub.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mul_sub(frs1, frs2, frs3)
+      frd[] = f64_mul_sub(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fnmadd_s) do
-    encoding(*format_r4_fp(0b1001111, 0b00))
+  fp_inst(:fnmadd_s) do |rm|
+    encoding(*format_r4_fp(0b1001111, 0b00, rm))
     asm { 'fnmadd.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mul_add_n(frs1, frs2, frs3)
+      frd[] = f32_mul_add_n(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fnmadd_d) do
-    encoding(*format_r4_fp(0b1001111, 0b01))
+  fp_inst(:fnmadd_d) do |rm|
+    encoding(*format_r4_fp(0b1001111, 0b01, rm))
     asm { 'fnmadd.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mul_add_n(frs1, frs2, frs3)
+      frd[] = f64_mul_add_n(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fnmsub_s) do
-    encoding(*format_r4_fp(0b1001011, 0b00))
+  fp_inst(:fnmsub_s) do |rm|
+    encoding(*format_r4_fp(0b1001011, 0b00, rm))
     asm { 'fnmsub.s {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f32_mul_sub_n(frs1, frs2, frs3)
+      frd[] = f32_mul_sub_n(frs1, frs2, frs3, rm)
     end
   end
 
-  Instruction(:fnmsub_d) do
-    encoding(*format_r4_fp(0b1001011, 0b01))
+  fp_inst(:fnmsub_d) do |rm|
+    encoding(*format_r4_fp(0b1001011, 0b01, rm))
     asm { 'fnmsub.d {frd}, {frs1}, {frs2}, {frs3}' }
     code do
-      frd[] = f64_mul_sub_n(frs1, frs2, frs3)
+      frd[] = f64_mul_sub_n(frs1, frs2, frs3, rm)
     end
   end
 
-  # Sign injection
+  # Sign injection (no rm field - unchanged)
   Instruction(:fsgnj_s) do
     encoding(*format_r_fp_no_rm(0b1010011, 0b000, 0b0010000))
     asm { 'fsgnj.s {frd}, {frs1}, {frs2}' }
@@ -241,7 +256,7 @@ module RV64F
     end
   end
 
-  # Comparisons
+  # Comparisons (no rm field - unchanged)
   Instruction(:fmin_s) do
     encoding(*format_r_fp_no_rm(0b1010011, 0b000, 0b0010100))
     asm { 'fmin.s {frd}, {frs1}, {frs2}' }
@@ -323,71 +338,71 @@ module RV64F
   end
 
   # Conversions
-  Instruction(:fcvt_w_s) do
-    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00000, 0b1100000))
+  fp_inst(:fcvt_w_s) do |rm|
+    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00000, 0b1100000, rm))
     asm { 'fcvt.w.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_i32(frs1)
+      rd[] = f32_to_i32(frs1, rm)
     end
   end
 
-  Instruction(:fcvt_wu_s) do
-    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00001, 0b1100000))
+  fp_inst(:fcvt_wu_s) do |rm|
+    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00001, 0b1100000, rm))
     asm { 'fcvt.wu.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_u32(frs1)
+      rd[] = f32_to_u32(frs1, rm)
     end
   end
 
-  Instruction(:fcvt_l_s) do
-    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00010, 0b1100000))
+  fp_inst(:fcvt_l_s) do |rm|
+    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00010, 0b1100000, rm))
     asm { 'fcvt.l.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_i64(frs1)
+      rd[] = f32_to_i64(frs1, rm)
     end
   end
 
-  Instruction(:fcvt_lu_s) do
-    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00011, 0b1100000))
+  fp_inst(:fcvt_lu_s) do |rm|
+    encoding(*format_r_fp_fcvt_rd(0b1010011, 0b00011, 0b1100000, rm))
     asm { 'fcvt.lu.s {rd}, {frs1}' }
     code do
-      rd[] = f32_to_u64(frs1)
+      rd[] = f32_to_u64(frs1, rm)
     end
   end
 
-  Instruction(:fcvt_s_w) do
-    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00000, 0b1101000))
+  fp_inst(:fcvt_s_w) do |rm|
+    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00000, 0b1101000, rm))
     asm { 'fcvt.s.w {frd}, {rs1}' }
     code do
-      frd[] = i32_to_f32(rs1)
+      frd[] = i32_to_f32(rs1, rm)
     end
   end
 
-  Instruction(:fcvt_s_wu) do
-    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00001, 0b1101000))
+  fp_inst(:fcvt_s_wu) do |rm|
+    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00001, 0b1101000, rm))
     asm { 'fcvt.s.wu {frd}, {rs1}' }
     code do
-      frd[] = u32_to_f32(rs1)
+      frd[] = u32_to_f32(rs1, rm)
     end
   end
 
-  Instruction(:fcvt_s_l) do
-    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00010, 0b1101000))
+  fp_inst(:fcvt_s_l) do |rm|
+    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00010, 0b1101000, rm))
     asm { 'fcvt.s.l {frd}, {rs1}' }
     code do
-      frd[] = i64_to_f32(rs1)
+      frd[] = i64_to_f32(rs1, rm)
     end
   end
 
-  Instruction(:fcvt_s_lu) do
-    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00011, 0b1101000))
+  fp_inst(:fcvt_s_lu) do |rm|
+    encoding(*format_r_fp_fcvt_frd(0b1010011, 0b00011, 0b1101000, rm))
     asm { 'fcvt.s.lu {frd}, {rs1}' }
     code do
-      frd[] = u64_to_f32(rs1)
+      frd[] = u64_to_f32(rs1, rm)
     end
   end
 
-  # Classification
+  # Classification (no rm field - unchanged)
   Instruction(:fclass_s) do
     encoding(*format_r_fp_class(0b1010011, 0b001, 0b00000, 0b1110000))
     asm { 'fclass.s {rd}, {frs1}' }
@@ -404,7 +419,7 @@ module RV64F
     end
   end
 
-  # Move
+  # Move (no rm field - unchanged)
   Instruction(:fmv_x_w) do
     encoding(*format_r_fp_no_rm_move_rd(0b1010011, 0b000, 0b1110000))
     asm { 'fmv.x.w {rd}, {frs1}' }

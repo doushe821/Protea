@@ -31,7 +31,7 @@ module SimInfra
     [name, :r32, "let :#{name}, :XRegs, [:op], :r32, f_#{name}"]
   end
 
-  def freg64(name)
+  def freg(name)
     [name, :f64, "let :#{name}, :FRegs, [:op], :f64, f_#{name}"]
   end
 end
@@ -56,11 +56,11 @@ module SimInfra
     ], xreg(:rs2), xreg(:rs1), xreg(:rd)]
   end
 
-  def format_r4_fp(opcode, funct2)
+  def format_r4_fp(opcode, funct2, rm)
     [:R4_FP, [
       field(:f_opcode, 6, 0, opcode),
       field(:f_frd, 11, 7),
-      field(:f_rm, 14, 12),
+      field(:f_rm, 14, 12, rm),
       field(:f_frs1, 19, 15),
       field(:f_frs2, 24, 20),
       field(:f_frs3, 31, 27),
@@ -68,11 +68,11 @@ module SimInfra
     ], freg(:frs3), freg(:frs2), freg(:frs1), freg(:frd)]
   end
 
-  def format_r_fp(opcode, funct7)
+  def format_r_fp(opcode, funct7, rm)
     [:R_FP, [
       field(:f_opcode, 6, 0, opcode),
       field(:f_frd, 11, 7),
-      field(:f_rm, 14, 12),
+      field(:f_rm, 14, 12, rm),
       field(:f_frs1, 19, 15),
       field(:f_frs2, 24, 20),
       field(:f_funct7, 31, 25, funct7)
@@ -112,22 +112,22 @@ module SimInfra
     ], freg(:frs2), freg(:frs1), freg(:frd)]
   end
 
-  def format_r_fp_fcvt_frd(opcode, funct5, funct7)
+  def format_r_fp_fcvt_frd(opcode, funct5, funct7, rm)
     [:R_FCVT, [
       field(:f_opcode, 6, 0, opcode),
       field(:f_frd, 11, 7),
-      field(:f_rm, 14, 12),
+      field(:f_rm, 14, 12, rm),
       field(:f_rs1, 19, 15),
       field(:f_funct5, 24, 20, funct5),
       field(:f_funct7, 31, 25, funct7)
     ], xreg(:rs1), freg(:frd)]
   end
 
-  def format_r_fp_fcvt_rd(opcode, funct5, funct7)
+  def format_r_fp_fcvt_rd(opcode, funct5, funct7, rm)
     [:R_FCVT, [
       field(:f_opcode, 6, 0, opcode),
       field(:f_rd, 11, 7),
-      field(:f_rm, 14, 12),
+      field(:f_rm, 14, 12, rm),
       field(:f_frs1, 19, 15),
       field(:f_funct5, 24, 20, funct5),
       field(:f_funct7, 31, 25, funct7)

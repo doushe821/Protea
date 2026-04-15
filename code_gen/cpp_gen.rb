@@ -7,6 +7,20 @@ module CodeGen
   class CppGenerator
     attr_reader :emitter, :mapping
 
+    # Maybe should move it to other module
+    # RISC-V RM to SoftFloat RM mapping
+    # RNE=0 -> softfloat_round_near_even(0), RTZ=1 -> softfloat_round_minMag(1),
+    # RDN=2 -> softfloat_round_min(2), RUP=3 -> softfloat_round_max(3),
+    # RMM=4 -> softfloat_round_near_maxMag(4), DYN=7 -> read from fcsr
+    SOFTFLOAT_RM_MAP = {
+      0 => 'softfloat_round_near_even',
+      1 => 'softfloat_round_minMag',
+      2 => 'softfloat_round_min',
+      3 => 'softfloat_round_max',
+      4 => 'softfloat_round_near_maxMag',
+      7 => nil # DYN - handled specially
+    }.freeze
+
     def initialize(emitter, mapping = {})
       @emitter = emitter
       @mapping = mapping
@@ -21,8 +35,29 @@ module CodeGen
       src2 = src2.nil? ? operation[:oprnds][2][:value] : src2
 
       emitter.emit_line("#{dst} = #{src1} #{op_str} #{src2};")
+    end
 
-    def emit_fp_binary(opname, operation, dst_type:, src_types:)
+    # Emit code to set SoftFloat rounding mode before FP operation
+    def emit_rm_setup(rm, tmp_var = '_rm_save')
+      return unless rm # nil means no rm handling needed
+
+      if rm == 7 # DYN mode - read from fcsr at runtime
+        @emitter.emit_line('assert(0 && "CSR is currently not supported\n");')
+        @emitter.emit_line("uint_fast8_t #{tmp_var} = softfloat_roundingMode;")
+        # @emitter.emit_line('softfloat_roundingMode = cpu.getFCSR_RM();')
+      else
+        rm_const = SOFTFLOAT_RM_MAP[rm]
+        @emitter.emit_line("uint_fast8_t #{tmp_var} = softfloat_roundingMode;")
+        @emitter.emit_line("softfloat_roundingMode = #{rm_const};")
+      end
+    end
+
+    # Emit code to restore SoftFloat rounding mode after FP operation
+    def emit_rm_restore(tmp_var = '_rm_save')
+      @emitter.emit_line("softfloat_roundingMode = #{tmp_var};")
+    end
+
+    def emit_fp_binary(opname, operation, dst_type:, src_types:, rm: nil)
       dst  = map_operand(operation[:oprnds][0])
       src1 = map_operand(operation[:oprnds][1])
       src2 = map_operand(operation[:oprnds][2])
@@ -47,6 +82,9 @@ module CodeGen
         @emitter.emit_line("#{ctype} #{t2} = (#{ctype})(#{src2});")
       end
 
+      # Set rounding mode before operation if rm is specified
+      emit_rm_setup(rm) if rm
+
       if Utility::FP_INFO[dst_type]
         ctype = Utility::FP_INFO[dst_type][:c_type]
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{t1}, #{t2});")
@@ -57,16 +95,16 @@ module CodeGen
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{t1}, #{t2});")
         @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
       end
+
+      # Restore rounding mode after operation if rm was set
+      emit_rm_restore if rm
     end
 
-    def gen_fp_neg(tmp_name, type)
-      case type
-      when :f32 then "#{tmp_name}.v ^= 0x80000000U;"
-      when :f64 then "#{tmp_name}.v ^= 0x8000000000000000ULL;"
-      end
-    end
-
-    def emit_fp_unary(opname, operation, dst_type:, src_type:)
+    # <float> -> int conversions need to be handled separetely, because
+    # they break general pattern of softfloat instructions by demanding
+    # rounding mode as an argument (they ignore global constant that all other
+    # fp functions use for some unknown reason).
+    def emit_fp_to_int_conv(opname, operation, dst_type:, src_type:, rounding_mode:, exact: true)
       dst = map_operand(operation[:oprnds][0])
       src = map_operand(operation[:oprnds][1])
 
@@ -81,6 +119,84 @@ module CodeGen
         @emitter.emit_line("#{ctype} #{ts} = (#{ctype})(#{src});")
       end
 
+      exact_arg = exact ? '1' : '0'
+      @emitter.emit_line("#{Utility::INT_INFO[dst_type]} #{tr} = #{opname}(#{ts}, #{rounding_mode}, #{exact_arg});")
+      @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
+    end
+
+    # There is no min/max/neg functions in softfloat,
+    # so we have to implement them ourselves
+    def emit_fp_min_max(opname, operation, type:)
+      dst, src1, src2 = map_n_operands(operation, 3)
+      t1 = Utility.gen_typed_tmp(src1, type)
+      t2 = Utility.gen_typed_tmp(src2, type)
+      tr = Utility.gen_typed_tmp(dst, type)
+      info = Utility::FP_INFO[type]
+      prefix = type == :f32 ? 'f32' : 'f64'
+      sign_bit = type == :f32 ? 31 : 63
+
+      @emitter.emit_line("#{info[:c_type]} #{t1} = { #{info[:unpack]}(#{src1}) };")
+      @emitter.emit_line("#{info[:c_type]} #{t2} = { #{info[:unpack]}(#{src2}) };")
+      @emitter.emit_line("#{info[:c_type]} #{tr};")
+
+      # Bitwise NaN detection. Couldn't find softfloat's one, also this would faster with JIT
+      # in comparison to function call.
+      if type == :f32
+        @emitter.emit_line("bool _a_nan = ((#{t1}.v >> 23) & 0xFF) == 0xFF && (#{t1}.v & 0x7FFFFF) != 0;")
+        @emitter.emit_line("bool _b_nan = ((#{t2}.v >> 23) & 0xFF) == 0xFF && (#{t2}.v & 0x7FFFFF) != 0;")
+      else
+        @emitter.emit_line("bool _a_nan = ((#{t1}.v >> 52) & 0x7FF) == 0x7FF && (#{t1}.v & 0xFFFFFFFFFFFFF) != 0;")
+        @emitter.emit_line("bool _b_nan = ((#{t2}.v >> 52) & 0x7FF) == 0x7FF && (#{t2}.v & 0xFFFFFFFFFFFFF) != 0;")
+      end
+
+      is_min = opname.include?('min')
+
+      @emitter.emit_line('{')
+      # return number if one of them is NaN, if both are NaN, return second
+      @emitter.emit_line("  if (_a_nan && _b_nan) #{tr} = #{t2};")
+      @emitter.emit_line("  else if (_a_nan) #{tr} = #{t2};")
+      @emitter.emit_line("  else if (_b_nan) #{tr} = #{t1};")
+      @emitter.emit_line('  else {')
+      if is_min
+        # smaller or neg zero
+        @emitter.emit_line("    if (#{prefix}_lt(#{t1}, #{t2}) || (#{prefix}_eq(#{t1}, #{t2}) && ((#{t1}.v >> #{sign_bit}) & 1))) #{tr} = #{t1};")
+      else
+        # larger or pos zero
+        @emitter.emit_line("    if (#{prefix}_lt(#{t2}, #{t1}) || (#{prefix}_eq(#{t1}, #{t2}) && ((#{t2}.v >> #{sign_bit}) & 1))) #{tr} = #{t1};")
+      end
+      @emitter.emit_line("    else #{tr} = #{t2};")
+      @emitter.emit_line('  }')
+      @emitter.emit_line('}')
+
+      pack = info[:pack]
+      @emitter.emit_line("#{dst} = #{pack % tr};")
+    end
+
+    def gen_fp_neg(tmp_name, type)
+      case type
+      when :f32 then "#{tmp_name}.v ^= 0x80000000U;"
+      when :f64 then "#{tmp_name}.v ^= 0x8000000000000000ULL;"
+      end
+    end
+
+    def emit_fp_unary(opname, operation, dst_type:, src_type:, rm: nil)
+      dst = map_operand(operation[:oprnds][0])
+      src = map_operand(operation[:oprnds][1])
+
+      ts = Utility.gen_typed_tmp(src, src_type)
+      tr = Utility.gen_typed_tmp(dst, dst_type)
+
+      if Utility::FP_INFO[src_type]
+        info = Utility::FP_INFO[src_type]
+        @emitter.emit_line("#{info[:c_type]} #{ts} = { #{info[:unpack]}(#{src}) };")
+      else
+        ctype = Utility::INT_INFO[src_type]
+        @emitter.emit_line("#{ctype} #{ts} = (#{ctype})(#{src});")
+      end
+
+      # Set rounding mode before operation if rm is specified
+      emit_rm_setup(rm) if rm
+
       if Utility::FP_INFO[dst_type]
         ctype = Utility::FP_INFO[dst_type][:c_type]
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{ts});")
@@ -91,12 +207,16 @@ module CodeGen
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{ts});")
         @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
       end
+
+      # Restore rounding mode after operation if rm was set
+      emit_rm_restore if rm
     end
 
     def emit_fp_ternary(opname, operation,
                         dst_type:,
                         src_types:,
-                        negate_src: [])
+                        negate_src: [],
+                        rm: nil)
       dst  = map_operand(operation[:oprnds][0])
       src1 = map_operand(operation[:oprnds][1])
       src2 = map_operand(operation[:oprnds][2])
@@ -114,8 +234,11 @@ module CodeGen
           info = Utility::FP_INFO[ty]
           @emitter.emit_line("#{info[:c_type]} #{t} = { #{info[:unpack]}(#{src}) };")
           if negate_src.include?(i)
-            negf = ty == :f32 ? 'f32_neg' : 'f64_neg'
-            @emitter.emit_line("#{t} = #{negf}(#{t});")
+            # TODO: change for gen_fp_neg
+            negation = gen_fp_neg(t, ty)
+            @emitter.emit_line(negation)
+            # negf = ty == :f32 ? 'f32_neg' : 'f64_neg'
+            # @emitter.emit_line("#{t} = #{negf}(#{t});")
           end
 
         else
@@ -127,6 +250,10 @@ module CodeGen
       end
 
       tr = Utility.gen_typed_tmp(dst, dst_type)
+
+      # Set rounding mode before operation if rm is specified
+      emit_rm_setup(rm) if rm
+
       if Utility::FP_INFO[dst_type]
         ctype = Utility::FP_INFO[dst_type][:c_type]
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{svars.join(', ')});")
@@ -137,6 +264,9 @@ module CodeGen
         @emitter.emit_line("#{ctype} #{tr} = #{opname}(#{svars.join(', ')});")
         @emitter.emit_line("#{dst} = (uint64_t)#{tr};")
       end
+
+      # Restore rounding mode after operation if rm was set
+      emit_rm_restore if rm
     end
 
     def emit_sign_inject(operation, width:, mode:)
@@ -201,6 +331,9 @@ module CodeGen
     end
 
     def generate_statement(operation)
+      # Extract rm from attrs if present
+      rm = operation[:attrs] if operation[:attrs].is_a?(Integer)
+
       case operation[:name]
       when :add
         binary_operation(@emitter, operation, '+')
@@ -293,62 +426,103 @@ module CodeGen
 
         @emitter.emit_line("#{dst} = #{cond} ? #{true_val} : #{false_val};")
 
-      # Floating point arithmetic operations
+      # Floating point arithmetic operations WITH rounding mode (SoftFloat global)
       when :f32_add then emit_fp_binary('f32_add', operation,
                                         dst_type: :f32,
-                                        src_types: %i[f32 f32])
+                                        src_types: %i[f32 f32],
+                                        rm: rm)
 
       when :f64_add then emit_fp_binary('f64_add', operation,
                                         dst_type: :f64,
-                                        src_types: %i[f64 f64])
+                                        src_types: %i[f64 f64],
+                                        rm: rm)
 
       when :f32_sub then emit_fp_binary('f32_sub', operation,
                                         dst_type: :f32,
-                                        src_types: %i[f32 f32])
+                                        src_types: %i[f32 f32],
+                                        rm: rm)
 
       when :f64_sub then emit_fp_binary('f64_sub', operation,
                                         dst_type: :f64,
-                                        src_types: %i[f64 f64])
+                                        src_types: %i[f64 f64],
+                                        rm: rm)
 
       when :f32_mul then emit_fp_binary('f32_mul', operation,
                                         dst_type: :f32,
-                                        src_types: %i[f32 f32])
+                                        src_types: %i[f32 f32],
+                                        rm: rm)
 
       when :f64_mul then emit_fp_binary('f64_mul', operation,
                                         dst_type: :f64,
-                                        src_types: %i[f64 f64])
+                                        src_types: %i[f64 f64],
+                                        rm: rm)
 
       when :f32_div then emit_fp_binary('f32_div', operation,
                                         dst_type: :f32,
-                                        src_types: %i[f32 f32])
+                                        src_types: %i[f32 f32],
+                                        rm: rm)
 
       when :f64_div then emit_fp_binary('f64_div', operation,
                                         dst_type: :f64,
-                                        src_types: %i[f64 f64])
+                                        src_types: %i[f64 f64],
+                                        rm: rm)
       when :f32_sqrt then emit_fp_unary('f32_sqrt', operation,
                                         dst_type: :f32,
-                                        src_type: :f32)
+                                        src_type: :f32,
+                                        rm: rm)
 
       when :f64_sqrt then emit_fp_unary('f64_sqrt', operation,
                                         dst_type: :f64,
-                                        src_type: :f64)
+                                        src_type: :f64,
+                                        rm: rm)
       when :f32_mul_add then emit_fp_ternary('f32_mulAdd', operation,
                                              dst_type: :f32,
-                                             src_types: %i[f32 f32 f32])
+                                             src_types: %i[f32 f32 f32],
+                                             rm: rm)
 
       when :f64_mul_add then emit_fp_ternary('f64_mulAdd', operation,
                                              dst_type: :f64,
-                                             src_types: %i[f64 f64 f64])
-      when :f64_mul_sub
-        emit_fp_ternary('f64_mulAdd', operation,
-                        dst_type: :f64,
-                        src_types: %i[f64 f64 f64],
-                        negate_src: [3])
-      when :f64_mul_sub_n
-        emit_fp_ternary('f64_mulAdd', operation,
-                        dst_type: :f64,
-                        src_types: %i[f64 f64 f64],
-                        negate_src: [1, 3])
+                                             src_types: %i[f64 f64 f64],
+                                             rm: rm)
+
+      # Fused Multiply-Add with Negation
+      when :f32_mul_add_n then emit_fp_ternary('f32_mulAdd', operation,
+                                               dst_type: :f32,
+                                               src_types: %i[f32 f32 f32],
+                                               negate_src: [0],
+                                               rm: rm)
+
+      when :f64_mul_add_n then emit_fp_ternary('f64_mulAdd', operation,
+                                               dst_type: :f64,
+                                               src_types: %i[f64 f64 f64],
+                                               negate_src: [0],
+                                               rm: rm)
+
+      when :f32_mul_sub then emit_fp_ternary('f32_mulAdd', operation,
+                                             dst_type: :f32,
+                                             src_types: %i[f32 f32 f32],
+                                             negate_src: [2],
+                                             rm: rm)
+
+      when :f64_mul_sub then emit_fp_ternary('f64_mulAdd', operation,
+                                             dst_type: :f64,
+                                             src_types: %i[f64 f64 f64],
+                                             negate_src: [2],
+                                             rm: rm)
+
+      when :f32_mul_sub_n then emit_fp_ternary('f32_mulAdd', operation,
+                                               dst_type: :f32,
+                                               src_types: %i[f32 f32 f32],
+                                               negate_src: [0, 2],
+                                               rm: rm)
+
+      when :f64_mul_sub_n then emit_fp_ternary('f64_mulAdd', operation,
+                                               dst_type: :f64,
+                                               src_types: %i[f64 f64 f64],
+                                               negate_src: [0, 2],
+                                               rm: rm)
+
+      # Floating point comparisons (NO rounding mode - SoftFloat doesn't need it)
       when :f32_eq then emit_fp_binary('f32_eq', operation,
                                        dst_type: :i32,
                                        src_types: %i[f32 f32])
@@ -367,26 +541,11 @@ module CodeGen
       when :f64_le then emit_fp_binary('f64_le', operation,
                                        dst_type: :i32,
                                        src_types: %i[f64 f64])
-      when :f32_min then emit_fp_binary('f32_min', operation,
-                                        dst_type: :f32,
-                                        src_types: %i[f32 f32])
-      when :f64_min then emit_fp_binary('f64_min', operation,
-                                        dst_type: :f64,
-                                        src_types: %i[f64 f64])
-      when :f32_max then emit_fp_binary('f32_max', operation,
-                                        dst_type: :f32,
-                                        src_types: %i[f32 f32])
-      when :f64_max then emit_fp_binary('f64_max', operation,
-                                        dst_type: :f64,
-                                        src_types: %i[f64 f64])
-      when :f32_mul_sub then emit_fp_ternary('f32_mulAdd', operation,
-                                             dst_type: :f32,
-                                             src_types: %i[f32 f32 f32],
-                                             negate_src: [2])
-      when :f32_mul_sub_n then emit_fp_ternary('f32_mulAdd', operation,
-                                               dst_type: :f32,
-                                               src_types: %i[f32 f32 f32],
-                                               negate_src: [0, 2])
+
+      when :f32_min then emit_fp_min_max('f32_min', operation, type: :f32)
+      when :f64_min then emit_fp_min_max('f64_min', operation, type: :f64)
+      when :f32_max then emit_fp_min_max('f32_max', operation, type: :f32)
+      when :f64_max then emit_fp_min_max('f64_max', operation, type: :f64)
 
       # Floating point injections
       when :f32_sign_injection   then emit_sign_inject(operation, width: 32, mode: :copy)
@@ -397,30 +556,29 @@ module CodeGen
 
       when :f32_sign_xor         then emit_sign_inject(operation, width: 32, mode: :xor)
       when :f64_sign_xor         then emit_sign_inject(operation, width: 64, mode: :xor)
-      # Floating point conversions
-      when :f32_to_i32 then emit_fp_unary('f32_to_i32', operation,
-                                          dst_type: :i32, src_type: :f32)
 
-      when :f32_to_u32 then emit_fp_unary('f32_to_ui32', operation,
-                                          dst_type: :u32, src_type: :f32)
-
-      when :f32_to_i64 then emit_fp_unary('f32_to_i64', operation,
-                                          dst_type: :i64, src_type: :f32)
-
-      when :f32_to_u64 then emit_fp_unary('f32_to_ui64', operation,
-                                          dst_type: :u64, src_type: :f32)
+      # Floating point conversions WITH rounding mode (SoftFloat global)
+      when :f32_to_i32 then emit_fp_to_int_conv('f32_to_i32', operation, dst_type: :i32, src_type: :f32,
+                                                                         rounding_mode: rm)
+      when :f32_to_u32 then emit_fp_to_int_conv('f32_to_ui32', operation, dst_type: :u32, src_type: :f32,
+                                                                          rounding_mode: rm)
+      when :f32_to_i64 then emit_fp_to_int_conv('f32_to_i64', operation, dst_type: :i64, src_type: :f32,
+                                                                         rounding_mode: rm)
+      when :f32_to_u64 then emit_fp_to_int_conv('f32_to_ui64', operation, dst_type: :u64, src_type: :f32,
+                                                                          rounding_mode: rm)
 
       when :i32_to_f32 then emit_fp_unary('i32_to_f32', operation,
-                                          dst_type: :f32, src_type: :i32)
+                                          dst_type: :f32, src_type: :i32, rm: rm)
 
       when :u32_to_f32 then emit_fp_unary('ui32_to_f32', operation,
-                                          dst_type: :f32, src_type: :u32)
+                                          dst_type: :f32, src_type: :u32, rm: rm)
 
       when :i64_to_f32 then emit_fp_unary('i64_to_f32', operation,
-                                          dst_type: :f32, src_type: :i64)
+                                          dst_type: :f32, src_type: :i64, rm: rm)
 
       when :u64_to_f32 then emit_fp_unary('ui64_to_f32', operation,
-                                          dst_type: :f32, src_type: :u64)
+                                          dst_type: :f32, src_type: :u64, rm: rm)
+
       # Classification
       when :f32_classify
         dst, src = map_n_operands(operation, 2)
@@ -469,7 +627,7 @@ module CodeGen
         @emitter.emit_line("#{dst} = r;")
         @emitter.emit_line('}')
 
-      else raise 'Unknown statement type, terminating program'
+      else raise "Unknown statement type: #{operation[:name]}, terminating program"
       end
     end
   end

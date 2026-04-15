@@ -59,83 +59,90 @@ module SimInfra
       Constant.new(self, "const_#{next_counter}", what) if what.class == Integer
     end
 
-    def binOp(a, b, op)
+    # SUGGESTION:
+    # Make those helpers accept optional attrs argument,
+    # which is now used to pass rounding mode for some fp instructions.
+    # Other pseudo-operands may appear in other RV modules,
+    # so it is a necessary addition imo.
+    def binOp(a, b, op, attrs = nil)
       binOpWType(a, b, op,
-                 Utility.get_type(a.type).typeof == :r ? ('b' + Utility.get_type(a.type).bitsize.to_s).to_sym : a.type)
+                 Utility.get_type(a.type).typeof == :r ? ('b' + Utility.get_type(a.type).bitsize.to_s).to_sym : a.type,
+                 attrs)
     end
 
-    def binOpWType(a, b, op, t)
+    def binOpWType(a, b, op, t, attrs = nil)
       a = resolve_const(a)
       b = resolve_const(b)
       # TODO: check constant size <= bitsize(var)
       # assert(a.type== b.type|| a.type == :iconst || b.type== :iconst)
-      stmt op, [tmpvar(t), a, b]
+      stmt op, [tmpvar(t), a, b], attrs
     end
 
     def getOpType(a)
       Utility.get_type(a.type).typeof == :r ? ('b' + Utility.get_type(a.type).bitsize.to_s).to_sym : a.type
     end
 
-    def unOp(a, op)
-      unOpWType(a, op, getOpType(a))
+    def unOp(a, op, attrs = nil)
+      unOpWType(a, op, getOpType(a), attrs)
     end
 
-    def unOpWType(a, op, t)
+    def unOpWType(a, op, t, attrs = nil)
       a = resolve_const(a)
-      stmt op, [tmpvar(t), a]
+      stmt op, [tmpvar(t), a], attrs
     end
 
-    def ternOp(a, b, c, op)
-      ternOpWType(a, b, c, op, getOpType(a))
+    def ternOp(a, b, c, op, attrs = nil)
+      ternOpWType(a, b, c, op, getOpType(a), attrs)
     end
 
-    def ternOpWType(a, b, c, op, t)
+    def ternOpWType(a, b, c, op, t, attrs = nil)
       a = resolve_const(a)
       b = resolve_const(b)
       c = resolve_const(c)
       # TODO: check constant size <= bitsize(var)
       # assert(a.type== b.type|| a.type == :iconst || b.type== :iconst)
-      stmt op, [tmpvar(t), a, b, c]
+      stmt op, [tmpvar(t), a, b, c], attrs
     end
 
-    # redefine! add & sub will never be the same
-    def add(a, b) = binOp(a, b, :add)
-    def sub(a, b) = binOp(a, b, :sub)
-    def shl(a, b) = binOp(a, b, :shl)
-    def lt(a, b) = binOpWType(a, b, :lt, :b1)
-    def gt(a, b) = binOpWType(a, b, :gt, :b1)
-    def le(a, b) = binOpWType(a, b, :le, :b1)
-    def ge(a, b) = binOpWType(a, b, :ge, :b1)
-    def xor(a, b) = binOp(a, b, :xor)
-    def shr(a, b) = binOp(a, b, :shr)
-    def ashr(a, b) = binOp(a, b, :ashr)
-    def or(a, b) = binOp(a, b, :or)
-    def and(a, b) = binOp(a, b, :and)
-    def eq(a, b) = binOpWType(a, b, :eq, :b1)
-    def ne(a, b) = binOpWType(a, b, :ne, :b1)
+    # Integer arithmetic
+    def add(a, b, attrs = nil) = binOp(a, b, :add, attrs)
+    def sub(a, b, attrs = nil) = binOp(a, b, :sub, attrs)
+    def shl(a, b, attrs = nil) = binOp(a, b, :shl, attrs)
+    def lt(a, b, attrs = nil) = binOpWType(a, b, :lt, :b1, attrs)
+    def gt(a, b, attrs = nil) = binOpWType(a, b, :gt, :b1, attrs)
+    def le(a, b, attrs = nil) = binOpWType(a, b, :le, :b1, attrs)
+    def ge(a, b, attrs = nil) = binOpWType(a, b, :ge, :b1, attrs)
+    def xor(a, b, attrs = nil) = binOp(a, b, :xor, attrs)
+    def shr(a, b, attrs = nil) = binOp(a, b, :shr, attrs)
+    def ashr(a, b, attrs = nil) = binOp(a, b, :ashr, attrs)
+    def or(a, b, attrs = nil) = binOp(a, b, :or, attrs)
+    def and(a, b, attrs = nil) = binOp(a, b, :and, attrs)
+    def eq(a, b, attrs = nil) = binOpWType(a, b, :eq, :b1, attrs)
+    def ne(a, b, attrs = nil) = binOpWType(a, b, :ne, :b1, attrs)
 
-    # Floating point operations
-    def f32_add(a, b) = binOp(a, b, :f32_add)
-    def f64_add(a, b) = binOp(a, b, :f64_add)
-    def f32_sub(a, b) = binOp(a, b, :f32_sub)
-    def f64_sub(a, b) = binOp(a, b, :f64_sub)
-    def f32_mul(a, b) = binOp(a, b, :f32_mul)
-    def f64_mul(a, b) = binOp(a, b, :f64_mul)
-    def f32_div(a, b) = binOp(a, b, :f32_div)
-    def f64_div(a, b) = binOp(a, b, :f64_div)
+    # Floating point Arithmetic
+    def f32_add(a, b, rm = nil) = binOp(a, b, :f32_add, rm)
+    def f64_add(a, b, rm = nil) = binOp(a, b, :f64_add, rm)
+    def f32_sub(a, b, rm = nil) = binOp(a, b, :f32_sub, rm)
+    def f64_sub(a, b, rm = nil) = binOp(a, b, :f64_sub, rm)
+    def f32_mul(a, b, rm = nil) = binOp(a, b, :f32_mul, rm)
+    def f64_mul(a, b, rm = nil) = binOp(a, b, :f64_mul, rm)
+    def f32_div(a, b, rm = nil) = binOp(a, b, :f32_div, rm)
+    def f64_div(a, b, rm = nil) = binOp(a, b, :f64_div, rm)
 
-    def f32_sqrt(a) = unOp(a, :f32_sqrt)
-    def f64_sqrt(a) = unOp(a, :f64_sqrt)
+    def f32_sqrt(a, rm = nil) = unOp(a, :f32_sqrt, rm)
+    def f64_sqrt(a, rm = nil) = unOp(a, :f64_sqrt, rm)
 
-    def f32_mul_add(a, b, c)   = ternOp(a, b, c, :f32_mul_add)
-    def f64_mul_add(a, b, c)   = ternOp(a, b, c, :f64_mul_add)
-    def f32_mul_sub(a, b, c)   = ternOp(a, b, c, :f32_mul_sub)
-    def f64_mul_sub(a, b, c)   = ternOp(a, b, c, :f64_mul_sub)
-    def f32_mul_add_n(a, b, c) = ternOp(a, b, c, :f32_mul_sub_n)
-    def f64_mul_add_n(a, b, c) = ternOp(a, b, c, :f64_mul_sub_n)
-    def f32_mul_sub_n(a, b, c) = ternOp(a, b, c, :f32_mul_sub_n)
-    def f64_mul_sub_n(a, b, c) = ternOp(a, b, c, :f64_mul_sub_n)
+    def f32_mul_add(a, b, c, rm = nil)   = ternOp(a, b, c, :f32_mul_add, rm)
+    def f64_mul_add(a, b, c, rm = nil)   = ternOp(a, b, c, :f64_mul_add, rm)
+    def f32_mul_sub(a, b, c, rm = nil)   = ternOp(a, b, c, :f32_mul_sub, rm)
+    def f64_mul_sub(a, b, c, rm = nil)   = ternOp(a, b, c, :f64_mul_sub, rm)
+    def f32_mul_add_n(a, b, c, rm = nil) = ternOp(a, b, c, :f32_mul_add_n, rm)
+    def f64_mul_add_n(a, b, c, rm = nil) = ternOp(a, b, c, :f64_mul_add_n, rm)
+    def f32_mul_sub_n(a, b, c, rm = nil) = ternOp(a, b, c, :f32_mul_sub_n, rm)
+    def f64_mul_sub_n(a, b, c, rm = nil) = ternOp(a, b, c, :f64_mul_sub_n, rm)
 
+    # Minmax, sign injection
     def f32_min(a, b) = binOp(a, b, :f32_min)
     def f64_min(a, b) = binOp(a, b, :f64_min)
     def f32_max(a, b) = binOp(a, b, :f32_max)
@@ -153,15 +160,17 @@ module SimInfra
     def f32_sign_xor(a, b) = binOp(a, b, :f32_sign_xor)
     def f64_sign_xor(a, b) = binOp(a, b, :f64_sign_xor)
 
-    # TODO: unary op
-    def f32_to_i32(a) = unOp(a, :f32_to_i32)
-    def f32_to_u32(a) = unOp(a, :f32_to_u32)
-    def f32_to_i64(a) = unOp(a, :f32_to_i64)
-    def f32_to_u64(a) = unOp(a, :f32_to_u64)
-    def i32_to_f32(a) = unOp(a, :i32_to_f32)
-    def u32_to_f32(a) = unOp(a, :u32_to_f32)
-    def i64_to_f32(a) = unOp(a, :i64_to_f32)
-    def u64_to_f32(a) = unOp(a, :u64_to_f32)
+    # Conversion
+    def f32_to_i32(a, rm = nil) = unOp(a, :f32_to_i32, rm)
+    def f32_to_u32(a, rm = nil) = unOp(a, :f32_to_u32, rm)
+    def f32_to_i64(a, rm = nil) = unOp(a, :f32_to_i64, rm)
+    def f32_to_u64(a, rm = nil) = unOp(a, :f32_to_u64, rm)
+    def i32_to_f32(a, rm = nil) = unOp(a, :i32_to_f32, rm)
+    def u32_to_f32(a, rm = nil) = unOp(a, :u32_to_f32, rm)
+    def i64_to_f32(a, rm = nil) = unOp(a, :i64_to_f32, rm)
+    def u64_to_f32(a, rm = nil) = unOp(a, :u64_to_f32, rm)
+
+    # Classification
     def f32_classify(a) = unOp(a, :f32_classify)
     def f64_classify(a) = unOp(a, :f64_classify)
 
@@ -230,7 +239,7 @@ module SimInfra
     def branch(expr) = stmt(:branch, [expr])
 
     private def tmpvar(type) = var("_tmp#{next_counter}".to_sym, type)
-    # stmtadds statement into tree and retursoperand[0]
+    # stmt adds statement into tree and returns operand[0]
     # which result in near all cases
     def stmt(name, operands, attrs = nil)
       for i in 1...operands.length

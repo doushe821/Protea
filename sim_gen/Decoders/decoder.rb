@@ -7,6 +7,8 @@ module SimGen
     module Helper
       module_function
 
+      # SUGGESTION: add following comment for better readability
+      # Constant fields are identified by the non-nil value in their :value_num field.
       def calc_insn_mask(insn)
         mask = 0
         for field in insn[:fields]
