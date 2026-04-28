@@ -21,3 +21,17 @@ CPMAddPackage(
   GIT_TAG 12.0.0
   EXCLUDE_FROM_ALL True
   SYSTEM True)
+
+if(UNIT_TESTS)
+  # GoogleTest: C++ unit testing framework
+  CPMAddPackage(
+    NAME googletest
+    GITHUB_REPOSITORY google/googletest
+    GIT_TAG v1.17.0
+    VERSION 1.17.0
+    EXCLUDE_FROM_ALL True
+    SYSTEM True
+    OPTIONS
+      "INSTALL_GTEST OFF"
+      "gtest_force_shared_crt ON")
+endif()

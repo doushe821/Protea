@@ -108,9 +108,15 @@ module SimGen
         for insn in instructions
           insn_mask = calc_insn_mask(insn)
           insn_value = calc_insn_value(insn)
-          next if (insn_mask & separ_mask) != separ_mask
 
-          res << insn if (insn_value & separ_mask) == (node & separ_mask)
+          # PROPOSAL:
+          # Split ranges can contain bits that are fixed for one instruction
+          # format and non-fixed for others.
+          # e.g. in R4 FP instructions 31:27 are frs3, while FP R-format uses
+          # 31-24 as a fixed funct7.
+          # The solution is
+          relevant_mask = insn_mask & separ_mask
+          res << insn if (insn_value & relevant_mask) == (node & relevant_mask)
         end
         res
       end
@@ -290,7 +296,11 @@ constexpr T slice(T word) {
 
 namespace prot::decoder {
 using namespace isa;
-std::optional<Instruction> decode(const isa::Word raw_insn) {
+// PROPOSAL:
+// Temporary: the current RV64 work still reuses RV32 instruction width,
+// because isa::Word type is deducted from biggest reg size from regfile, which
+// is 64 bit (FP regs). That conflicts with 32I that is already implemented.
+std::optional<Instruction> decode(const uint32_t raw_insn) {
   Instruction insn{};
 #{decoder_impl}
   return {}; // No matching instruction found
