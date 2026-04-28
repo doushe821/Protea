@@ -21,6 +21,6 @@ add_subdirectory(lib)
 add_subdirectory(sim_lib)
 add_subdirectory(sim_gen)
 
-if(BUILD_TESTING)
+if(UNIT_TESTS)
   add_subdirectory(tests)
 endif()

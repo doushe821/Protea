@@ -1,3 +1,5 @@
+# PROPOSAL:
+# Add rv64f isa description
 require_relative 'encoding'
 require_relative '../../ADL/base'
 require_relative '../../ADL/builder'
@@ -6,8 +8,6 @@ module RV64F
   include SimInfra
   extend SimInfra
 
-  # NOTE: semantics now are just dummies, they will change in future
-  # Register float regs in regfile
   RegisterFile(:FRegs) do
     (0..31).each do |i|
       send(:f64, :"f#{i}")

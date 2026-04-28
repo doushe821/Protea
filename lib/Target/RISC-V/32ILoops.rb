@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 require_relative 'encoding'
 require_relative '../../Generic/base'
 require_relative '../../Generic/builder'

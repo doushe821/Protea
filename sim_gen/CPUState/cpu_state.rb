@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 # frozen_string_literal: true
 
 require 'lib/Utility/gen_emitter'

@@ -7,6 +7,10 @@ module CodeGen
   class CppGenerator
     attr_reader :emitter, :mapping
 
+    # PROPOSAL:
+    # Add RM (rounding modes) map that converts
+    # RV rounding modes into softfloat rounding modes.
+    # They actually are exactly the same, but we can generalize this idea later.
     # Maybe should move it to other module
     # RISC-V RM to SoftFloat RM mapping
     # RNE=0 -> softfloat_round_near_even(0), RTZ=1 -> softfloat_round_minMag(1),
@@ -37,10 +41,16 @@ module CodeGen
       emitter.emit_line("#{dst} = #{src1} #{op_str} #{src2};")
     end
 
+    # PROPOSAL:
+    # Add FP emitter helpers
     # Emit code to set SoftFloat rounding mode before FP operation
+    # For most instruction in softfloat, rounding mode is defined
+    # by global variable, so we have to change it before we execute.
+    # We also store it into a temporal variable, so we can restore it later.
     def emit_rm_setup(rm, tmp_var = '_rm_save')
       return unless rm # nil means no rm handling needed
 
+      # Currently not supported
       if rm == 7 # DYN mode - read from fcsr at runtime
         @emitter.emit_line('assert(0 && "CSR is currently not supported\n");')
         @emitter.emit_line("uint_fast8_t #{tmp_var} = softfloat_roundingMode;")
@@ -57,6 +67,10 @@ module CodeGen
       @emitter.emit_line("softfloat_roundingMode = #{tmp_var};")
     end
 
+    # Emits binary fp operation.
+    # This is different from RV32I binop, because:
+    # 1. typing is different (check Utility/fp_helper_cpp.rb)
+    # 2. Rounding mode has to be changed
     def emit_fp_binary(opname, operation, dst_type:, src_types:, rm: nil)
       dst  = map_operand(operation[:oprnds][0])
       src1 = map_operand(operation[:oprnds][1])
@@ -100,7 +114,7 @@ module CodeGen
       emit_rm_restore if rm
     end
 
-    # <float> -> int conversions need to be handled separetely, because
+    # float -> int conversions need to be handled separetely, because
     # they break general pattern of softfloat instructions by demanding
     # rounding mode as an argument (they ignore global constant that all other
     # fp functions use for some unknown reason).
@@ -179,6 +193,7 @@ module CodeGen
       end
     end
 
+    # same as above
     def emit_fp_unary(opname, operation, dst_type:, src_type:, rm: nil)
       dst = map_operand(operation[:oprnds][0])
       src = map_operand(operation[:oprnds][1])
@@ -212,6 +227,8 @@ module CodeGen
       emit_rm_restore if rm
     end
 
+    # RV64F has FMA instructions that have 3 sources, so this
+    # new emitter is necessary.
     def emit_fp_ternary(opname, operation,
                         dst_type:,
                         src_types:,
@@ -269,6 +286,7 @@ module CodeGen
       emit_rm_restore if rm
     end
 
+    # No softfloat lib function, so hand-written again
     def emit_sign_inject(operation, width:, mode:)
       dst, src1, src2 = map_n_operands(operation, 3)
 
@@ -295,6 +313,7 @@ module CodeGen
       @emitter.emit_line("#{dst} = #{result};")
     end
 
+    # Helpers for easier operand mapping in operations emitters
     def map_n_operands(op, n)
       ops = []
       (0...n).each do |i|
@@ -331,7 +350,7 @@ module CodeGen
     end
 
     def generate_statement(operation)
-      # Extract rm from attrs if present
+      # Extract rm from attrs if present.
       rm = operation[:attrs] if operation[:attrs].is_a?(Integer)
 
       case operation[:name]
@@ -394,7 +413,6 @@ module CodeGen
         @emitter.emit_line("#{expr} = #{cpu_read_reg(src)}<#{Utility::HelperCpp.gen_small_type(src[:type])}>(#{src_name});")
       when :writeReg
         dst = operation[:oprnds][0]
-        src = operation[:oprnds][1]
         dst_name = @mapping[operation[:oprnds][0][:name]] || operation[:oprnds][0][:name]
         expr = @mapping[operation[:oprnds][1][:name]] || operation[:oprnds][1][:name]
         expr = expr.nil? ? operation[:oprnds][1][:value] : expr
@@ -426,6 +444,8 @@ module CodeGen
 
         @emitter.emit_line("#{dst} = #{cond} ? #{true_val} : #{false_val};")
 
+      # PROPOSAL:
+      # Add emitters for RV64F
       # Floating point arithmetic operations WITH rounding mode (SoftFloat global)
       when :f32_add then emit_fp_binary('f32_add', operation,
                                         dst_type: :f32,
@@ -522,7 +542,7 @@ module CodeGen
                                                negate_src: [0, 2],
                                                rm: rm)
 
-      # Floating point comparisons (NO rounding mode - SoftFloat doesn't need it)
+      # Floating point comparisons (no rm)
       when :f32_eq then emit_fp_binary('f32_eq', operation,
                                        dst_type: :i32,
                                        src_types: %i[f32 f32])
@@ -557,7 +577,7 @@ module CodeGen
       when :f32_sign_xor         then emit_sign_inject(operation, width: 32, mode: :xor)
       when :f64_sign_xor         then emit_sign_inject(operation, width: 64, mode: :xor)
 
-      # Floating point conversions WITH rounding mode (SoftFloat global)
+      # Floating point conversions with rm
       when :f32_to_i32 then emit_fp_to_int_conv('f32_to_i32', operation, dst_type: :i32, src_type: :f32,
                                                                          rounding_mode: rm)
       when :f32_to_u32 then emit_fp_to_int_conv('f32_to_ui32', operation, dst_type: :u32, src_type: :f32,

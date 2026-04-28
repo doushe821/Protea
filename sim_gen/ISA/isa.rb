@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 module SimGen
   module ISA
     module Helper

@@ -1,3 +1,5 @@
+# PROPOSAL:
+# autoformat again
 module SimInfra
   # Value class is a super class of Variable or Constant.
   class Value

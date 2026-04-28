@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 require 'Utility/gen_emitter'
 
 # Helper methods for Intermediate Representation

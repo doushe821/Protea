@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 require_relative 'encoding'
 require_relative '../../ADL/base'
 require_relative '../../ADL/builder'

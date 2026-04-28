@@ -1,3 +1,7 @@
+# PROPOSAL:
+# Add utility methods for FP operatiosn to support typing of softfloat.
+# float32_t and float64_t are actually C structures that contain a
+# uint32_t / uint64_t raw bytes memories.
 # Utility methods for FP instructions generation
 module Utility
   extend Utility

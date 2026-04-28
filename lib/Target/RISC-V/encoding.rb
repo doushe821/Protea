@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 require_relative '../../ADL/base'
 
 module SimInfra
@@ -56,6 +57,8 @@ module SimInfra
     ], xreg(:rs2), xreg(:rs1), xreg(:rd)]
   end
 
+  # PROPOSAL:
+  # Add FP encoding formats.
   def format_r4_fp(opcode, funct2, rm)
     [:R4_FP, [
       field(:f_opcode, 6, 0, opcode),

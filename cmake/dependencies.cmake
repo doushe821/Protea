@@ -22,6 +22,8 @@ CPMAddPackage(
   EXCLUDE_FROM_ALL True
   SYSTEM True)
 
+# PROPOSAL:
+# Add GTest for unit testing.
 if(UNIT_TESTS)
   # GoogleTest: C++ unit testing framework
   CPMAddPackage(

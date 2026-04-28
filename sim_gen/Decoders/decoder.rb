@@ -114,7 +114,8 @@ module SimGen
           # format and non-fixed for others.
           # e.g. in R4 FP instructions 31:27 are frs3, while FP R-format uses
           # 31-24 as a fixed funct7.
-          # The solution is
+          # The solution is to check relevant mask, instead of skipping
+          # instruction, if separ_mask != insn_mask:
           relevant_mask = insn_mask & separ_mask
           res << insn if (insn_value & relevant_mask) == (node & relevant_mask)
         end

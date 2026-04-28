@@ -59,7 +59,7 @@ module SimInfra
       Constant.new(self, "const_#{next_counter}", what) if what.class == Integer
     end
 
-    # SUGGESTION:
+    # PROPOSAL:
     # Make those helpers accept optional attrs argument,
     # which is now used to pass rounding mode for some fp instructions.
     # Other pseudo-operands may appear in other RV modules,
@@ -119,7 +119,8 @@ module SimInfra
     def and(a, b, attrs = nil) = binOp(a, b, :and, attrs)
     def eq(a, b, attrs = nil) = binOpWType(a, b, :eq, :b1, attrs)
     def ne(a, b, attrs = nil) = binOpWType(a, b, :ne, :b1, attrs)
-
+    # PROPOSAL:
+    # Add floatig point operations
     # Floating point Arithmetic
     def f32_add(a, b, rm = nil) = binOp(a, b, :f32_add, rm)
     def f64_add(a, b, rm = nil) = binOp(a, b, :f64_add, rm)
@@ -252,6 +253,8 @@ module SimInfra
     def read_transform(operation_name, op)
       if op.class == Var && !op.regset.nil?
         case op.regset
+        # PROPOSAL:
+        # add switch case to support FRegs
         when :XRegs then x = tmpvar(('b' + op.type.to_s[1..-1]).to_sym)
         when :FRegs then x = tmpvar(('f' + op.type.to_s[1..-1]).to_sym)
         else raise 'Unknown regset'

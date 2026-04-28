@@ -1,3 +1,4 @@
+# PROPOSAL: autoformat
 module Utility
   # The instances of the Type class are immutable.
   # Only one instance of a particular type is ever created
