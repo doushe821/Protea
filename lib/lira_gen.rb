@@ -7,7 +7,7 @@ require_relative 'lira/ir'
 require_relative 'lira/ir_builder'
 require_relative 'lira/ir_ops'
 require_relative 'lira/arch_ser_yaml'
-
+require_relative 'lira/ir_ser_txt'
 require_relative 'Utility/lira_utils'
 
 class LiraSerializer
@@ -16,15 +16,22 @@ class LiraSerializer
     @arch_attributes = arch_attributes
     @arch_builder = nil
     @builder = nil
-    @temp_map = nil
+    @vars = nil
     @operand_names = nil
     @operand_vars = nil
+
+    @decode_cache = {}
+    @decode_snip_id = 0
+
+    # NOTE: Temporary disabled
+    # @encode_cache = {}
+    # @encode_snip_id = 0
   end
 
   def process_binary_op(name, oprnds)
     op_class = Lira.const_get(ADLToLiraUtils::OP_MAP[name])
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @temp_map)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars)
     return nil if a.nil? || b.nil?
     target_width = [a.width, b.width].max
     a = ADLToLiraUtils.ensure_width(a, target_width, @builder)
@@ -40,8 +47,8 @@ class LiraSerializer
     unsigned = op1_type.start_with?('u')
     op_map = unsigned ? ADLToLiraUtils::CMP_OP_MAP_U : ADLToLiraUtils::CMP_OP_MAP_S
     op_class = Lira.const_get(op_map[name])
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @temp_map)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars)
     return nil if a.nil? || b.nil?
     target_width = [a.width, b.width].max
     a = ADLToLiraUtils.ensure_width(a, target_width, @builder)
@@ -59,7 +66,7 @@ class LiraSerializer
     idx = @operand_names.index(reg_var.name.to_s)
     if idx
       input_val = @builder.input(idx, ADLToLiraUtils.convert_type(reg_var.type))
-      @temp_map[oprnds[0]] = input_val
+      @vars[oprnds[0]] = input_val
       input_val
     else
       rf_name = reg_var.regset.to_s
@@ -71,14 +78,14 @@ class LiraSerializer
       out = @builder.seq.new_temp(32)
       reg = reg_var.name.to_s
       @builder.read(rf, reg)
-      @temp_map[oprnds[0]] = out
+      @vars[oprnds[0]] = out
       out
     end
   end
 
   def process_write_reg(oprnds)
     reg_var = oprnds[0]
-    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
+    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
     return nil if val.nil?
     idx = @operand_names.index(reg_var.name.to_s)
     if idx
@@ -99,7 +106,7 @@ class LiraSerializer
   def process_read_mem(oprnds)
     out_type = ADLToLiraUtils.convert_type(oprnds[0].type)
     out = @builder.seq.new_temp(out_type)
-    addr = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
+    addr = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
     return nil if addr.nil?
     addr_width = addr.width
     ef = ADLToLiraUtils.find_env_func(@arch_builder, "readMem", [addr_width], [out_type])
@@ -108,13 +115,13 @@ class LiraSerializer
       return nil
     end
     @builder.env(ef, [addr])
-    @temp_map[oprnds[0]] = out
+    @vars[oprnds[0]] = out
     out
   end
 
   def process_write_mem(oprnds)
-    addr = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @temp_map)
-    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
+    addr = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @vars)
+    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
     return nil if addr.nil? || val.nil?
     addr_width = addr.width
     ef = ADLToLiraUtils.find_env_func(@arch_builder, "writeMem", [addr_width, val.width], [])
@@ -127,7 +134,7 @@ class LiraSerializer
   end
 
   def process_extract(oprnds)
-    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
+    val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
     return nil if val.nil?
     hi = oprnds[2].value
     lo = oprnds[3].value
@@ -135,7 +142,7 @@ class LiraSerializer
     width = 1 if width < 1
     out = @builder.seq.new_temp(width)
     @builder.extract(val, @builder.const(lo, 32), width)
-    @temp_map[oprnds[0]] = out
+    @vars[oprnds[0]] = out
     out
   end
 
@@ -143,7 +150,7 @@ class LiraSerializer
     dest_type = oprnds[0].type
     dest_width = ADLToLiraUtils.convert_type(dest_type)
     dest_width = 1 if dest_width < 1
-    src = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
+    src = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
     return nil if src.nil?
     if src.width == dest_width
       out = src
@@ -155,28 +162,28 @@ class LiraSerializer
         @builder.extend_sign(src, dest_width)
       end
     end
-    @temp_map[oprnds[0]] = out
+    @vars[oprnds[0]] = out
     out
   end
 
   def process_rem(oprnds)
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @temp_map)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars)
     return nil if a.nil? || b.nil?
     unsigned = oprnds[1].type.to_s.start_with?('u')
     out = unsigned ? @builder.rem_u(a, b) : @builder.rem_s(a, b)
-    @temp_map[oprnds[0]] = out
+    @vars[oprnds[0]] = out
     out
   end
 
   def process_div(oprnds)
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @temp_map)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars)
     return nil if a.nil? || b.nil?
     unsigned = oprnds[1].type.to_s.start_with?('u')
     default = @builder.const(0, 32)
     out = unsigned ? @builder.div_u(a, b, default) : @builder.div_s(a, b, default)
-    @temp_map[oprnds[0]] = out
+    @vars[oprnds[0]] = out
     out
   end
 
@@ -190,29 +197,29 @@ class LiraSerializer
       width = ADLToLiraUtils.convert_type(var.type)
       width = 1 if width < 1
       val = @builder.seq.new_temp(width)
-      @temp_map[var] = val
+      @vars[var] = val
 
     when :let
       lhs, rhs = oprnds
-      rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @temp_map)
-      @temp_map[lhs] = rhs_val if rhs_val
+      rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @vars)
+      @vars[lhs] = rhs_val if rhs_val
 
     when :add, :sub, :mul, :and, :or, :xor, :shl, :shr, :ashr
       out = process_binary_op(name, oprnds)
-      @temp_map[oprnds[0]] = out if out
+      @vars[oprnds[0]] = out if out
 
     when :lt, :gt, :le, :ge, :eq, :ne
       out = process_cmp_op(name, oprnds)
-      @temp_map[oprnds[0]] = out if out
+      @vars[oprnds[0]] = out if out
 
     when :select
-      cond = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @temp_map)
-      t = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @temp_map)
-      f = ADLToLiraUtils.resolve_operand(oprnds[3], @builder, @temp_map)
+      cond = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars)
+      t = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars)
+      f = ADLToLiraUtils.resolve_operand(oprnds[3], @builder, @vars)
       return if cond.nil? || t.nil? || f.nil?
       cond = ADLToLiraUtils.ensure_width(cond, 1, @builder)
       out = @builder.select(cond, t, f)
-      @temp_map[oprnds[0]] = out
+      @vars[oprnds[0]] = out
 
     when :extract
       process_extract(oprnds)
@@ -233,7 +240,7 @@ class LiraSerializer
       process_write_mem(oprnds)
 
     when :branch
-      target = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @temp_map)
+      target = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @vars)
       return if target.nil?
       ef = ADLToLiraUtils.find_env_func(@arch_builder, "pc_write", [32], [])
       if ef.nil?
@@ -261,138 +268,157 @@ class LiraSerializer
     end
   end
 
-  def generate_semantic(adl_instr)
-    return Lira::StatementSeq.new([]) if adl_instr.code.tree.empty?
+  def generate_semantic(instr)
+    return Lira::StatementSeq.new([]) if instr.code.tree.empty?
 
     @builder = Lira::InstructionBuilder.new(
-      adl_instr.name.to_s, [], [],
+      instr.name.to_s, [], [],
       Lira::InstructionEncoding.new(32, 0, [], '', '', '')
     )
-    @temp_map = {}
-    adl_instr.code.tree.each do |stmt|
+    @vars = {}
+    instr.code.tree.each do |stmt|
       stmt_to_lira(stmt)
     end
     @builder.seq.build
   end
 
-  def generate_decode_snippets(adl_instr, operand_vars)
+  def generate_decode_snippets(instr, operand_vars)
     decode_snippet_names = []
-    operand_vars.each do |var|
-      snippet_name = "decode_#{adl_instr.name}_#{var.name}"
-      @builder = Lira::SnippetBuilder.new(snippet_name)
-      @temp_map = {}
-      enc = @builder.input(0, 32)
+    @builder = Lira::SnippetBuilder.new("temp_decode")
+    @vars = {}
+    enc = @builder.input(0, 32)
 
-      adl_instr.map.tree.each do |stmt|
-        name = stmt.name
-        oprnds = stmt.oprnds
+    instr.map.tree.each do |stmt|
+      name = stmt.name
+      oprnds = stmt.oprnds
 
-        case name
-        when :new_var
-          v = oprnds[0]
-          width = ADLToLiraUtils.convert_type(v.type)
-          width = 1 if width < 1
-          val = @builder.seq.new_temp(width)
-          @temp_map[v] = val
+      case name
+      when :new_var
+        v = oprnds[0]
+        width = ADLToLiraUtils.convert_type(v.type)
+        width = 1 if width < 1
+        val = @builder.seq.new_temp(width)
+        @vars[v] = val
 
-        when :let
-          lhs, rhs = oprnds
-          if rhs.is_a?(SimInfra::Var) && rhs.name.to_s.start_with?('f_')
-            field_name = rhs.name.to_s[2..-1]
-            field = adl_instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
-            if field
-              lo = field.from
-              hi = field.to
-              width = hi - lo + 1
-              width = 1 if width < 1
-              shifted = @builder.lsr(enc, @builder.const(lo, 32))
-              val = @builder.extract_low(shifted, width)
-              if ADLToLiraUtils.convert_type(lhs.type) != width
-                if lhs.type.to_s.start_with?('s')
-                  val = @builder.extend_sign(val, ADLToLiraUtils.convert_type(lhs.type))
-                else
-                  val = @builder.extend_zero(val, ADLToLiraUtils.convert_type(lhs.type))
-                end
+      when :let
+        lhs, rhs = oprnds
+        if rhs.is_a?(SimInfra::Var) && rhs.name.to_s.start_with?('f_')
+          field_name = rhs.name.to_s[2..-1]
+          field = instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
+          if field
+            lo = field.from
+            hi = field.to
+            width = hi - lo + 1
+            width = 1 if width < 1
+            shifted = @builder.lsr(enc, @builder.const(lo, 32))
+            val = @builder.extract_low(shifted, width)
+            if ADLToLiraUtils.convert_type(lhs.type) != width
+              if lhs.type.to_s.start_with?('s')
+                val = @builder.extend_sign(val, ADLToLiraUtils.convert_type(lhs.type))
+              else
+                val = @builder.extend_zero(val, ADLToLiraUtils.convert_type(lhs.type))
               end
-              @temp_map[lhs] = val
-            else
-              rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @temp_map)
-              @temp_map[lhs] = rhs_val if rhs_val
             end
+            @vars[lhs] = val
           else
-            rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @temp_map)
-            @temp_map[lhs] = rhs_val if rhs_val
+            rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @vars)
+            @vars[lhs] = rhs_val if rhs_val
           end
-
-        when :cast, :zext
-          process_cast_zext(name, oprnds)
-
-        when :add, :sub, :mul, :and, :or, :xor, :shl, :shr, :ashr
-          out = process_binary_op(name, oprnds)
-          @temp_map[oprnds[0]] = out if out
-
-        when :lt, :gt, :le, :ge, :eq, :ne
-          out = process_cmp_op(name, oprnds)
-          @temp_map[oprnds[0]] = out if out
-
         else
-          # Ignore other statements in decode snippet
+          rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @vars)
+          @vars[lhs] = rhs_val if rhs_val
         end
-      end
 
-      val = @temp_map[var]
-      @builder.output(val || @builder.const(0, 32), 0)
-      snippet = @builder.build
+      when :cast, :zext
+        process_cast_zext(name, oprnds)
+
+      when :add, :sub, :mul, :and, :or, :xor, :shl, :shr, :ashr
+        out = process_binary_op(name, oprnds)
+        @vars[oprnds[0]] = out if out
+
+      when :lt, :gt, :le, :ge, :eq, :ne
+        out = process_cmp_op(name, oprnds)
+        @vars[oprnds[0]] = out if out
+
+      else
+          # Ignore other statements in decode snippet
+      end
+    end
+
+    operand_vars.each_with_index do |var, idx|
+      val = @vars[var]
+      @builder.output(val, idx)
+    end
+
+    snippet = @builder.build
+    seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
+
+    if @decode_cache.key?(seq_str)
+      decode_snippet_names << @decode_cache[seq_str]
+    else
+      unique_name = "decode_#{@decode_snip_id}"
+      snippet.name = unique_name
       @arch_builder.add_snippet(snippet)
-      decode_snippet_names << snippet_name
+      @decode_snip_id += 1
+      @decode_cache[seq_str] = unique_name
+      decode_snippet_names << unique_name
     end
     decode_snippet_names
   end
 
-  def generate_encode_snippet(adl_instr, operand_vars)
-    snippet_name = "encode_#{adl_instr.name}"
-    @builder = Lira::SnippetBuilder.new(snippet_name)
+  # NOTE: Temporary disabled
+  # def generate_encode_snippet(instr, operand_vars)
+  #   @builder = Lira::SnippetBuilder.new("temp_encode")
+  #
+  #   operand_values = operand_vars.each_with_index.map do |var, idx|
+  #     width = ADLToLiraUtils.convert_type(var.type)
+  #     width = 1 if width < 1
+  #     @builder.input(idx, width)
+  #   end
+  #
+  #   base = @builder.const(0, 32)
+  #   instr.fields.each do |field|
+  #     lo = field.from
+  #     hi = field.to
+  #     width = hi - lo + 1
+  #     width = 1 if width < 1
+  #     field_var_name = field.value.name.to_s
+  #     value_num = field.value.value
+  #     if value_num
+  #       const_val = @builder.const(value_num, width)
+  #       const_val = ADLToLiraUtils.ensure_width(const_val, 32, @builder)
+  #       shifted = @builder.lsl(const_val, @builder.const(lo, 32))
+  #       base = @builder.orr(base, shifted)
+  #     elsif field_var_name =~ /^f_(.+)$/
+  #       operand_name = $1
+  #       idx = operand_vars.index { |v| v.name.to_s == operand_name }
+  #       if idx
+  #         op_val = operand_values[idx]
+  #         op_val = ADLToLiraUtils.ensure_width(op_val, 32, @builder)
+  #         shifted = @builder.lsl(op_val, @builder.const(lo, 32))
+  #         base = @builder.orr(base, shifted)
+  #       end
+  #     end
+  #   end
+  #
+  #   @builder.output(base, 0)
+  #   snippet = @builder.build
+  #   seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
+  #   if @encode_cache.key?(seq_str)
+  #     return @encode_cache[seq_str]
+  #   else
+  #     unique_name = "encode_#{@encode_snip_id}"
+  #     snippet.name = unique_name
+  #     @arch_builder.add_snippet(snippet)
+  #     @encode_snip_id += 1
+  #     @encode_cache[seq_str] = unique_name
+  #     unique_name
+  #   end
+  # end
 
-    operand_values = operand_vars.each_with_index.map do |var, idx|
-      width = ADLToLiraUtils.convert_type(var.type)
-      width = 1 if width < 1
-      @builder.input(idx, width)
-    end
-
-    base = @builder.const(0, 32)
-    adl_instr.fields.each do |field|
-      lo = field.from
-      hi = field.to
-      width = hi - lo + 1
-      width = 1 if width < 1
-      field_var_name = field.value.name.to_s
-      value_num = field.value.value
-      if value_num
-        const_val = @builder.const(value_num, width)
-        const_val = ADLToLiraUtils.ensure_width(const_val, 32, @builder)
-        shifted = @builder.lsl(const_val, @builder.const(lo, 32))
-        base = @builder.orr(base, shifted)
-      elsif field_var_name =~ /^f_(.+)$/
-        operand_name = $1
-        idx = operand_vars.index { |v| v.name.to_s == operand_name }
-        if idx
-          op_val = operand_values[idx]
-          op_val = ADLToLiraUtils.ensure_width(op_val, 32, @builder)
-          shifted = @builder.lsl(op_val, @builder.const(lo, 32))
-          base = @builder.orr(base, shifted)
-        end
-      end
-    end
-
-    @builder.output(base, 0)
-    snippet = @builder.build
-    @arch_builder.add_snippet(snippet)
-    snippet_name
-  end
-
-  def collect_operand_vars(adl_instr)
+  def collect_operand_vars(instr)
     operand_vars = []
-    adl_instr.map.tree.each do |stmt|
+    instr.map.tree.each do |stmt|
       if stmt.name == :new_var
         var = stmt.oprnds[0]
         attrs = stmt.attrs
@@ -402,27 +428,27 @@ class LiraSerializer
     operand_vars
   end
 
-  def collect_operand_names(adl_instr)
-    collect_operand_vars(adl_instr).map { |v| v.name.to_s }
+  def collect_operand_names(instr)
+    collect_operand_vars(instr).map { |v| v.name.to_s }
   end
 
-  def convert_instruction(adl_instr)
-    operand_vars = collect_operand_vars(adl_instr)
-    operand_names = collect_operand_names(adl_instr)
+  def convert_instruction(instr)
+    operand_vars = collect_operand_vars(instr)
+    operand_names = collect_operand_names(instr)
     @operand_names = operand_names
-    semantic = generate_semantic(adl_instr)
+    semantic = generate_semantic(instr)
 
     decode_snippets = []
     encode_snippet = nil
-    if adl_instr.map.tree.any? && operand_vars.any?
-      decode_snippets = generate_decode_snippets(adl_instr, operand_vars)
+    if instr.map.tree.any? && operand_vars.any?
+      decode_snippets = generate_decode_snippets(instr, operand_vars)
     end
-    if adl_instr.fields.any? && operand_vars.any?
-      encode_snippet = generate_encode_snippet(adl_instr, operand_vars)
-    end
+    # if instr.fields.any? && operand_vars.any?
+    #   encode_snippet = generate_encode_snippet(instr, operand_vars)
+    # end
 
     const_part = 0
-    adl_instr.fields.each do |field|
+    instr.fields.each do |field|
       value_num = field.value.value
       const_part |= (value_num << field.from) if value_num
     end
@@ -430,7 +456,7 @@ class LiraSerializer
     operand_sizes = operand_vars.map { |v| ADLToLiraUtils.convert_type(v.type) }
 
     encoding = Lira::InstructionEncoding.new(32, const_part, decode_snippets, encode_snippet || '', '', '')
-    Lira::Instruction.new(adl_instr.name.to_s, [], operand_sizes, operand_names, encoding, semantic)
+    Lira::Instruction.new(instr.name.to_s, [], operand_sizes, operand_names, encoding, semantic)
   end
 
   def build_arch
@@ -461,13 +487,13 @@ class LiraSerializer
       @arch_builder.add_env_func(Lira::EnvironmentFunction.new("pc_write", [], [32], []))
     end
 
-    SimInfra.class_variable_get(:@@instructions).each do |adl_instr|
-      next if adl_instr.name == :fence || adl_instr.name == :ebreak
+    SimInfra.class_variable_get(:@@instructions).each do |instr|
+      next if instr.name == :fence || instr.name == :ebreak
       begin
-        lira_instr = convert_instruction(adl_instr)
+        lira_instr = convert_instruction(instr)
         @arch_builder.add_instruction(lira_instr)
       rescue => e
-        warn "Skipping #{adl_instr.name}: #{e}"
+        warn "Skipping #{instr.name}: #{e}"
       end
     end
 
