@@ -1,0 +1,1338 @@
+---
+:name: TargetArch
+:attributes: []
+:register_files:
+- :name: XRegs
+  :attributes: []
+  :reg_size:
+    :lanes_base: 32
+    :lanes_mult: {}
+  :regs:
+  - :name: x0
+    :attributes:
+    - zero
+  - :name: x1
+    :attributes: []
+  - :name: x2
+    :attributes: []
+  - :name: x3
+    :attributes: []
+  - :name: x4
+    :attributes: []
+  - :name: x5
+    :attributes: []
+  - :name: x6
+    :attributes: []
+  - :name: x7
+    :attributes: []
+  - :name: x8
+    :attributes: []
+  - :name: x9
+    :attributes: []
+  - :name: x10
+    :attributes: []
+  - :name: x11
+    :attributes: []
+  - :name: x12
+    :attributes: []
+  - :name: x13
+    :attributes: []
+  - :name: x14
+    :attributes: []
+  - :name: x15
+    :attributes: []
+  - :name: x16
+    :attributes: []
+  - :name: x17
+    :attributes: []
+  - :name: x18
+    :attributes: []
+  - :name: x19
+    :attributes: []
+  - :name: x20
+    :attributes: []
+  - :name: x21
+    :attributes: []
+  - :name: x22
+    :attributes: []
+  - :name: x23
+    :attributes: []
+  - :name: x24
+    :attributes: []
+  - :name: x25
+    :attributes: []
+  - :name: x26
+    :attributes: []
+  - :name: x27
+    :attributes: []
+  - :name: x28
+    :attributes: []
+  - :name: x29
+    :attributes: []
+  - :name: x30
+    :attributes: []
+  - :name: x31
+    :attributes: []
+  - :name: pc
+    :attributes:
+    - pc
+:system_registers: []
+:environment_functions:
+- :name: sysCall
+  :attributes: []
+  :inputs: []
+  :outputs: []
+- :name: writeMem
+  :attributes: []
+  :inputs:
+  - 32
+  - 8
+  :outputs: []
+- :name: writeMem
+  :attributes: []
+  :inputs:
+  - 32
+  - 16
+  :outputs: []
+- :name: writeMem
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs: []
+- :name: readMem
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 8
+- :name: readMem
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 16
+- :name: readMem
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 32
+- :name: getPC
+  :attributes: []
+  :inputs: []
+  :outputs:
+  - 32
+- :name: setPC
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs: []
+:tables_int: []
+:operations: []
+:snippets:
+- :name: decode_0
+  :seq: |
+    1 32 _t1 = input 0;
+    1 32 _t3 = const 7;
+    1 32 _t4 = op lsr_32 _t1 _t3;
+    1 5 _t5 = op extract_low_32_to_5 _t4;
+    1 32 _t6 = op extend_zero_5_to_32 _t5;
+    1 32 _t8 = const 12;
+    1 32 _t9 = op lsr_32 _t1 _t8;
+    1 20 _t10 = op extract_low_32_to_20 _t9;
+    1 32 _t12 = const 12;
+    1 32 _t13 = op extend_zero_20_to_32 _t10;
+    1 32 _t14 = op lsl_32 _t13 _t12;
+    1 = output 0 _t6;
+    1 = output 1 _t14;
+- :name: decode_1
+  :seq: |
+    1 32 _t1 = input 0;
+    1 32 _t3 = const 20;
+    1 32 _t4 = op lsr_32 _t1 _t3;
+    1 5 _t5 = op extract_low_32_to_5 _t4;
+    1 32 _t6 = op extend_zero_5_to_32 _t5;
+    1 32 _t8 = const 15;
+    1 32 _t9 = op lsr_32 _t1 _t8;
+    1 5 _t10 = op extract_low_32_to_5 _t9;
+    1 32 _t11 = op extend_zero_5_to_32 _t10;
+    1 32 _t13 = const 7;
+    1 32 _t14 = op lsr_32 _t1 _t13;
+    1 5 _t15 = op extract_low_32_to_5 _t14;
+    1 32 _t16 = op extend_zero_5_to_32 _t15;
+    1 = output 0 _t6;
+    1 = output 1 _t11;
+    1 = output 2 _t16;
+- :name: decode_2
+  :seq: |
+    1 32 _t1 = input 0;
+    1 32 _t3 = const 20;
+    1 32 _t4 = op lsr_32 _t1 _t3;
+    1 12 _t5 = op extract_low_32_to_12 _t4;
+    1 32 _t6 = op extend_sign_12_to_32 _t5;
+    1 32 _t9 = const 15;
+    1 32 _t10 = op lsr_32 _t1 _t9;
+    1 5 _t11 = op extract_low_32_to_5 _t10;
+    1 32 _t12 = op extend_zero_5_to_32 _t11;
+    1 32 _t14 = const 7;
+    1 32 _t15 = op lsr_32 _t1 _t14;
+    1 5 _t16 = op extract_low_32_to_5 _t15;
+    1 32 _t17 = op extend_zero_5_to_32 _t16;
+    1 = output 0 _t6;
+    1 = output 1 _t12;
+    1 = output 2 _t17;
+- :name: decode_3
+  :seq: |
+    1 32 _t1 = input 0;
+    1 32 _t3 = const 20;
+    1 32 _t4 = op lsr_32 _t1 _t3;
+    1 5 _t5 = op extract_low_32_to_5 _t4;
+    1 32 _t6 = op extend_sign_5_to_32 _t5;
+    1 32 _t8 = const 15;
+    1 32 _t9 = op lsr_32 _t1 _t8;
+    1 5 _t10 = op extract_low_32_to_5 _t9;
+    1 32 _t11 = op extend_zero_5_to_32 _t10;
+    1 32 _t13 = const 7;
+    1 32 _t14 = op lsr_32 _t1 _t13;
+    1 5 _t15 = op extract_low_32_to_5 _t14;
+    1 32 _t16 = op extend_zero_5_to_32 _t15;
+    1 = output 0 _t6;
+    1 = output 1 _t11;
+    1 = output 2 _t16;
+- :name: decode_4
+  :seq: |
+    1 32 _t1 = input 0;
+    1 32 _t3 = const 25;
+    1 32 _t4 = op lsr_32 _t1 _t3;
+    1 7 _t5 = op extract_low_32_to_7 _t4;
+    1 12 _t6 = op extend_zero_7_to_12 _t5;
+    1 32 _t8 = const 5;
+    1 32 _t9 = op extend_zero_12_to_32 _t6;
+    1 32 _t10 = op lsl_32 _t9 _t8;
+    1 32 _t12 = const 7;
+    1 32 _t13 = op lsr_32 _t1 _t12;
+    1 5 _t14 = op extract_low_32_to_5 _t13;
+    1 12 _t15 = op extend_zero_5_to_12 _t14;
+    1 32 _t17 = op extend_zero_12_to_32 _t15;
+    1 32 _t18 = op orr_32 _t10 _t17;
+    1 32 _t22 = const 15;
+    1 32 _t23 = op lsr_32 _t1 _t22;
+    1 5 _t24 = op extract_low_32_to_5 _t23;
+    1 32 _t25 = op extend_zero_5_to_32 _t24;
+    1 32 _t27 = const 20;
+    1 32 _t28 = op lsr_32 _t1 _t27;
+    1 5 _t29 = op extract_low_32_to_5 _t28;
+    1 32 _t30 = op extend_zero_5_to_32 _t29;
+    1 = output 0 _t18;
+    1 = output 1 _t25;
+    1 = output 2 _t30;
+:instructions:
+- :name: lui
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  :operand_names:
+  - rd
+  - imm
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 55
+    :const_mask: 127
+    :decode:
+    - decode_0
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t1 = input 1;
+    1 32 _t2 = input 0;
+    1 = write XRegs _t2 _t1;
+- :name: auipc
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  :operand_names:
+  - rd
+  - imm
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 23
+    :const_mask: 127
+    :decode:
+    - decode_0
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t2 = input 1;
+    1 32 _t3 = env getPC;
+    1 32 _t4 = op add_32 _t2 _t3;
+    1 32 _t5 = input 0;
+    1 = write XRegs _t5 _t4;
+- :name: add
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 51
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op add_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: sub
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 1073741875
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op sub_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: sll
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 4147
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op lsl_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: slt
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 8243
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 1 _t10 = op slt_32 _t4 _t8;
+    1 32 _t12 = op extend_sign_1_to_32 _t10;
+    1 32 _t13 = input 2;
+    1 = write XRegs _t13 _t12;
+- :name: sltu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 12339
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 1 _t10 = op ult_32 _t4 _t8;
+    1 32 _t12 = op extend_sign_1_to_32 _t10;
+    1 32 _t13 = input 2;
+    1 = write XRegs _t13 _t12;
+- :name: xor
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 16435
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 32 _t7 = read XRegs _t6;
+    1 32 _t8 = op xor_32 _t4 _t7;
+    1 32 _t9 = input 2;
+    1 = write XRegs _t9 _t8;
+- :name: srl
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 20531
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op lsr_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: sra
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 1073762355
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op lsr_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: or
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 24627
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 32 _t7 = read XRegs _t6;
+    1 32 _t8 = op orr_32 _t4 _t7;
+    1 32 _t9 = input 2;
+    1 = write XRegs _t9 _t8;
+- :name: and
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 28723
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 32 _t7 = read XRegs _t6;
+    1 32 _t8 = op and_32 _t4 _t7;
+    1 32 _t9 = input 2;
+    1 = write XRegs _t9 _t8;
+- :name: addi
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 19
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: slti
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 8211
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 1 _t8 = op slt_32 _t4 _t6;
+    1 32 _t10 = op extend_sign_1_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: sltiu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 12307
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 1 _t8 = op ult_32 _t4 _t6;
+    1 32 _t10 = op extend_sign_1_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: xori
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 16403
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op xor_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: ori
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 24595
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op orr_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: andi
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 28691
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op and_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: slli
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33558547
+    :const_mask: 4261441663
+    :decode:
+    - decode_3
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op lsl_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: srli
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33574931
+    :const_mask: 4261441663
+    :decode:
+    - decode_3
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op lsr_32 _t4 _t5;
+    1 32 _t7 = input 2;
+    1 = write XRegs _t7 _t6;
+- :name: srai
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 1107316755
+    :const_mask: 4261441663
+    :decode:
+    - decode_3
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = input 0;
+    1 32 _t7 = op lsr_32 _t4 _t6;
+    1 32 _t8 = input 2;
+    1 = write XRegs _t8 _t7;
+- :name: jalr
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 103
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t2 = env getPC;
+    1 32 _t3 = const 4;
+    1 32 _t4 = op add_32 _t2 _t3;
+    1 32 _t8 = input 1;
+    1 32 _t9 = read XRegs _t8;
+    1 32 _t10 = input 0;
+    1 32 _t11 = op add_32 _t9 _t10;
+    1 32 _t13 = const -2;
+    1 32 _t14 = op and_32 _t11 _t13;
+    1 = env setPC _t14;
+    1 32 _t15 = input 2;
+    1 = write XRegs _t15 _t4;
+- :name: sb
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rs2
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 35
+    :const_mask: 28799
+    :decode:
+    - decode_4
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 32 _t9 = input 2;
+    1 32 _t10 = read XRegs _t9;
+    1 32 _t11 = const 0;
+    1 32 _t12 = op lsr_32 _t10 _t11;
+    1 8 _t13 = op extract_low_32_to_8 _t12;
+    1 = env writeMem _t6 _t13;
+- :name: sh
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rs2
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 4131
+    :const_mask: 28799
+    :decode:
+    - decode_4
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 32 _t9 = input 2;
+    1 32 _t10 = read XRegs _t9;
+    1 32 _t11 = const 0;
+    1 32 _t12 = op lsr_32 _t10 _t11;
+    1 16 _t13 = op extract_low_32_to_16 _t12;
+    1 = env writeMem _t6 _t13;
+- :name: sw
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rs2
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 8227
+    :const_mask: 28799
+    :decode:
+    - decode_4
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 32 _t8 = input 2;
+    1 32 _t9 = read XRegs _t8;
+    1 = env writeMem _t6 _t9;
+- :name: lb
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 3
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 8 _t8 = env readMem _t6;
+    1 32 _t10 = op extend_sign_8_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: lh
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 4099
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 16 _t8 = env readMem _t6;
+    1 32 _t10 = op extend_sign_16_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: lw
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 8195
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 32 _t8 = env readMem _t6;
+    1 32 _t9 = input 2;
+    1 = write XRegs _t9 _t8;
+- :name: lbu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 16387
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 8 _t8 = env readMem _t6;
+    1 32 _t10 = op extend_zero_8_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: lhu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - imm
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 20483
+    :const_mask: 28799
+    :decode:
+    - decode_2
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t5 = input 0;
+    1 32 _t6 = op add_32 _t4 _t5;
+    1 16 _t8 = env readMem _t6;
+    1 32 _t10 = op extend_zero_16_to_32 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: ecall
+  :attributes: []
+  :operand_sizes: []
+  :operand_names: []
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 115
+    :const_mask: 4294967295
+    :decode: []
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: '1 = env sysCall;
+
+    '
+- :name: ebreak
+  :attributes: []
+  :operand_sizes: []
+  :operand_names: []
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 1048691
+    :const_mask: 4294967295
+    :decode: []
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: ''
+- :name: fence
+  :attributes: []
+  :operand_sizes: []
+  :operand_names: []
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 15
+    :const_mask: 4027580415
+    :decode: []
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: ''
+- :name: mul
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33554483
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op mul_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: mulh
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33558579
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 64 _t5 = op extend_sign_32_to_64 _t4;
+    1 32 _t8 = input 0;
+    1 32 _t9 = read XRegs _t8;
+    1 64 _t10 = op extend_sign_32_to_64 _t9;
+    1 64 _t12 = op mul_64 _t5 _t10;
+    1 32 _t14 = const 32;
+    1 64 _t15 = op extend_zero_32_to_64 _t14;
+    1 64 _t16 = op lsr_64 _t12 _t15;
+    1 32 _t17 = input 2;
+    1 = write XRegs _t17 _t16;
+- :name: mulhsu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33562675
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 64 _t5 = op extend_sign_32_to_64 _t4;
+    1 32 _t8 = input 0;
+    1 32 _t9 = read XRegs _t8;
+    1 64 _t10 = op extend_zero_32_to_64 _t9;
+    1 64 _t13 = op mul_64 _t5 _t10;
+    1 32 _t15 = const 32;
+    1 64 _t16 = op extend_zero_32_to_64 _t15;
+    1 64 _t17 = op lsr_64 _t13 _t16;
+    1 32 _t18 = input 2;
+    1 = write XRegs _t18 _t17;
+- :name: mulhu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33566771
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 64 _t5 = op extend_zero_32_to_64 _t4;
+    1 32 _t8 = input 0;
+    1 32 _t9 = read XRegs _t8;
+    1 64 _t10 = op extend_zero_32_to_64 _t9;
+    1 64 _t12 = op mul_64 _t5 _t10;
+    1 32 _t14 = const 32;
+    1 64 _t15 = op extend_zero_32_to_64 _t14;
+    1 64 _t16 = op lsr_64 _t12 _t15;
+    1 32 _t17 = input 2;
+    1 = write XRegs _t17 _t16;
+- :name: div
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33570867
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 0;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = const 0;
+    1 1 _t5 = op ne_32 _t4 _t6;
+    1 32 _t9 = input 1;
+    1 32 _t10 = read XRegs _t9;
+    1 32 _t13 = input 0;
+    1 32 _t14 = read XRegs _t13;
+    1 32 _t16 = const 0;
+    1 1 _t15 = op ne_32 _t14 _t16;
+    1 32 _t19 = input 0;
+    1 32 _t20 = read XRegs _t19;
+    1 32 _t22 = const 1;
+    1 32 _t23 = op select_32 _t15 _t20 _t22;
+    1 32 _t25 = const 0;
+    1 32 _t26 = op divs_32 _t10 _t23 _t25;
+    1 32 _t28 = const 4294967295;
+    1 32 _t29 = op select_32 _t5 _t26 _t28;
+    1 32 _t30 = input 2;
+    1 = write XRegs _t30 _t29;
+- :name: divu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33574963
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 0;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t6 = const 0;
+    1 1 _t5 = op ne_32 _t4 _t6;
+    1 32 _t9 = input 1;
+    1 32 _t10 = read XRegs _t9;
+    1 32 _t13 = input 0;
+    1 32 _t14 = read XRegs _t13;
+    1 32 _t16 = const 0;
+    1 1 _t15 = op ne_32 _t14 _t16;
+    1 32 _t19 = input 0;
+    1 32 _t20 = read XRegs _t19;
+    1 32 _t22 = const 1;
+    1 32 _t23 = op select_32 _t15 _t20 _t22;
+    1 32 _t25 = const 0;
+    1 32 _t26 = op divu_32 _t10 _t23 _t25;
+    1 32 _t28 = const 4294967295;
+    1 32 _t29 = op select_32 _t5 _t26 _t28;
+    1 32 _t30 = input 2;
+    1 = write XRegs _t30 _t29;
+- :name: rem
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33579059
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op rems_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
+- :name: remu
+  :attributes: []
+  :operand_sizes:
+  - 32
+  - 32
+  - 32
+  :operand_names:
+  - rs2
+  - rs1
+  - rd
+  :encoding:
+    :encoded_size: 32
+    :const_encoding_part: 33583155
+    :const_mask: 4261441663
+    :decode:
+    - decode_1
+    :encode: ''
+    :constraint_decode: ''
+    :constraint_encode: ''
+  :semantic: |
+    1 32 _t3 = input 1;
+    1 32 _t4 = read XRegs _t3;
+    1 32 _t7 = input 0;
+    1 32 _t8 = read XRegs _t7;
+    1 32 _t10 = op remu_32 _t4 _t8;
+    1 32 _t11 = input 2;
+    1 = write XRegs _t11 _t10;
