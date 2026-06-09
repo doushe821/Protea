@@ -12,8 +12,8 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
                PROPERTY VALUE "${CMAKE_BINARY_DIR}/install")
 endif()
 
-find_package(Ruby 3.4.8 EXACT REQUIRED)
-find_package(Python3 3.12 EXACT REQUIRED COMPONENTS Interpreter)
+find_package(Ruby 4.0.1 EXACT REQUIRED)
+find_package(Python3 3.10 EXACT REQUIRED COMPONENTS Interpreter)
 message("Python found: ${Python3_EXECUTABLE}")
 
 include(ExternalProject)
@@ -30,5 +30,5 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(sim_lib)
-add_subdirectory(sim_gen)
+add_subdirectory(sim_gen_lira)
 add_subdirectory(test)

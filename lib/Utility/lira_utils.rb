@@ -1,3 +1,4 @@
+# lira_utils.rb
 module ADLToLiraUtils
   OP_MAP = {
     add: :Add,
@@ -29,6 +30,8 @@ module ADLToLiraUtils
     ne: :Ne
   }.freeze
 
+  SPECIAL_REGS = %w[pc].freeze
+
   def self.convert_type(adl_type)
     return 32 if adl_type.nil?
     case adl_type.to_s
@@ -38,9 +41,10 @@ module ADLToLiraUtils
     end
   end
 
-  def self.resolve_operand(op, builder, temp_map)
+  def self.resolve_operand(op, builder, vars, operand_names, arch_builder = nil)
     return nil if op.nil?
-    return temp_map[op] if temp_map.key?(op)
+    return vars[op] if vars.key?(op)
+
     if op.is_a?(Integer)
       return builder.const(op, 32)
     end
@@ -50,9 +54,43 @@ module ADLToLiraUtils
     if op.is_a?(SimInfra::Var)
       width = convert_type(op.type)
       width = 1 if width < 1
-      val = builder.seq.new_temp(width)
-      temp_map[op] = val
-      return val
+
+      idx = operand_names.index(op.name.to_s)
+      if idx
+        input_val = builder.input(idx, width)
+        vars[op] = input_val
+
+        if op.regset
+          rf_name = op.regset.to_s
+          rf = arch_builder.register_files.find { |rf| rf.name == rf_name }
+          if rf.nil?
+            warn "Register file '#{rf_name}' not found, skipping statement"
+            return nil
+          end
+          read_val = builder.seq.new_temp(width)
+          builder.read(rf, input_val)
+          vars[op] = read_val
+          return read_val
+        else
+          return input_val
+        end
+      else
+        if SPECIAL_REGS.include?(op.name.to_s)
+          ef = find_env_func(arch_builder, "getPC", [], [32])
+          if ef
+            val = builder.env(ef, [])[0]
+            vars[op] = val
+            return val
+          else
+            warn "Environment function 'getPC' not registered"
+            return nil
+          end
+        else
+          val = builder.seq.new_temp(width)
+          vars[op] = val
+          return val
+        end
+      end
     end
     raise "Cannot resolve operand: #{op.inspect}"
   end
