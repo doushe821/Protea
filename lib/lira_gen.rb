@@ -1,3 +1,4 @@
+# lira_gen.rb
 #!/usr/bin/env ruby
 
 require_relative 'ADL/base'
@@ -164,6 +165,11 @@ class LiraSerializer
     dest_width = 1 if dest_width < 1
     src = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     return nil if src.nil?
+    # Truncate if src is wider than the expected source type
+    src_expected_width = ADLToLiraUtils.convert_type(oprnds[1].type)
+    if src.width > src_expected_width
+      src = @builder.extract_low(src, src_expected_width)
+    end
     if src.width == dest_width
       out = src
     else
@@ -347,6 +353,11 @@ class LiraSerializer
           dest_type = lhs.type
           dest_width = ADLToLiraUtils.convert_type(dest_type)
           dest_width = 1 if dest_width < 1
+          # Truncate if src is wider than the expected source type
+          src_expected_width = ADLToLiraUtils.convert_type(rhs.type)
+          if src.width > src_expected_width
+            src = @builder.extract_low(src, src_expected_width)
+          end
           if src.width == dest_width
             val = src
           else
