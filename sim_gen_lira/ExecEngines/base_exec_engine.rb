@@ -40,8 +40,6 @@ struct ExecEngine {
 #include \"memory.hh\"
 #include \"decoder.hh\"
 
-#include <iostream>
-
 namespace prot::engine {
 using namespace prot::state;
 using namespace prot::isa;
@@ -51,7 +49,6 @@ void ExecEngine::step(CPU &cpu) {
   auto instr_opt = decoder::decode(bytes);
   if (instr_opt) {
     execute(cpu, *instr_opt);
-    std::cout << \"pc = \" << std::hex << cpu.getPC() << std::dec << std::endl;
     cpu.increaseICount();
   }
 }
