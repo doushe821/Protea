@@ -1,3 +1,4 @@
+# Decoders/decoder.rb
 require_relative '../cpp_gen'
 
 module SimGen
@@ -33,23 +34,34 @@ module SimGen
 
         body = []
         instructions.each do |insn|
-          next if insn[:encoding][:decode_snippets].empty?
           mask = insn[:encoding][:const_mask]
-          const = insn[:encoding][:const_part]
-          snippet_name = insn[:encoding][:decode_snippets].first
-          seq = snippets[snippet_name]
-          next unless seq
+          const_part = insn[:encoding][:const_part]
+          decode_snippets = insn[:encoding][:decode_snippets]
 
-          translator = LiraCppGen::Translator.new(seq, :decode, 2)
-          snippet_code = translator.translate
+          if decode_snippets.nil? || decode_snippets.empty?
+            # Инструкция без полей (например, fence, ecall, ebreak)
+            body << <<~CPP
+              if ((raw_insn & #{mask}) == #{const_part}) {
+                insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+                return insn;
+              }
+            CPP
+          else
+            snippet_name = decode_snippets.first
+            seq = snippets[snippet_name]
+            next unless seq
 
-          body << <<~CPP
-            if ((raw_insn & #{mask}) == #{const}) {
-              #{snippet_code}
-              insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
-              return insn;
-            }
-          CPP
+            translator = LiraCppGen::Translator.new(seq, :decode, 2)
+            snippet_code = translator.translate
+
+            body << <<~CPP
+              if ((raw_insn & #{mask}) == #{const_part}) {
+                #{snippet_code}
+                insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+                return insn;
+              }
+            CPP
+          end
         end
 
         decoder_impl = body.join("\n")

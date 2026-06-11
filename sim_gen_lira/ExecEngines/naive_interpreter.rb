@@ -1,3 +1,4 @@
+# ExecEngines/naive_interpreter.rb
 require_relative '../cpp_gen'
 
 module SimGen
@@ -34,17 +35,22 @@ module SimGen
         ir_hash[:instructions].each do |insn|
           name = insn[:name].to_s.upcase
           seq = insn[:semantic_seq]
-          next unless seq && seq.stmts.any?
 
-          translator = LiraCppGen::Translator.new(seq, :execute, 2)
-          body = translator.translate
+          # Генерируем функцию даже для пустой семантики
+          if seq && seq.stmts.any?
+            translator = LiraCppGen::Translator.new(seq, :execute, 2)
+            body = translator.translate
+          else
+            body = "  // no semantic"
+          end
+
           exec_functions << <<~CPP
             void do#{name}(CPU &cpu, const Instruction &insn) {
               #{body}
             }
           CPP
 
-          if seq.stmts.any? { |s| s.kind == 'env' && s.specifier == 'setPC' }
+          if seq && seq.stmts.any? && seq.stmts.any? { |s| s.kind == 'env' && s.specifier == 'setPC' }
             branch_insns << "case Opcode::k#{name}: return true;"
           end
         end
