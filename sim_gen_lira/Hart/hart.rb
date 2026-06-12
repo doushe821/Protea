@@ -43,7 +43,6 @@ module SimGen
               Hart(std::unique_ptr<Memory> mem, std::unique_ptr<ExecEngine> engine);
 
               void setSP(#{type_str} addr);
-              CPU* getCPU() { return m_cpu.get(); }
 
               void load(const ElfLoader &loader);
 
