@@ -30,6 +30,10 @@ class LiraSerializer
   end
 
   def process_binary_op(name, oprnds)
+    # Convert logical shift to arithmetic shift if the left operand is signed
+    if name == :shr && oprnds[1].type.to_s.start_with?('s')
+      name = :ashr
+    end
     op_class = Lira.const_get(ADLToLiraUtils::OP_MAP[name])
     a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
@@ -516,7 +520,7 @@ class LiraSerializer
       low_bit = field.to
       high_bit = field.from
       width = high_bit - low_bit + 1
-      if value_num
+      if !value_num.nil?
         const_part |= (value_num << low_bit)
         const_mask |= (((1 << width) - 1) << low_bit)
       end
