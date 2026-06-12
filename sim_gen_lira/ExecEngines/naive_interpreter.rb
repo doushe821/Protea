@@ -70,7 +70,8 @@ module SimGen
 
         <<~CPP
           #include "naive_interpreter.hh"
-          #include "std_ops.h"
+          #include "base_ops.h"
+
           #include <cassert>
           #include <array>
 

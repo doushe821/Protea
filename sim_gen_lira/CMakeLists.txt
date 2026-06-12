@@ -4,10 +4,10 @@ set(PROTEA_SIMGEN_OUTPUT_HEADERS
   cpu_state.hh
   base_exec_engine.hh
   naive_interpreter.hh
-  ${CMAKE_SOURCE_DIR}/prot_std/std_ops.h
   decoder.hh
   isa.hh
   hart.hh
+  base_ops.h
 )
 
 set(PROTEA_SIMGEN_OUTPUT_SOURCES

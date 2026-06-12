@@ -67,7 +67,7 @@ module SimGen
         decoder_impl = body.join("\n")
         <<~CPP
           #include "decoder.hh"
-          #include "std_ops.h"
+          #include "base_ops.h"
           #include <optional>
 
           namespace prot::decoder {

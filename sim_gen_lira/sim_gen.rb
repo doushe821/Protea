@@ -4,6 +4,8 @@
 $LOAD_PATH.unshift File.dirname(__FILE__)
 
 require_relative 'cpp_gen'
+require_relative 'base_ops_gen'
+
 require_relative 'CPUState/cpu_state'
 require_relative 'Decoders/decoder'
 require_relative 'ISA/isa'
@@ -58,7 +60,6 @@ ir_hash = {
 
 File.write('cpu_state.hh', SimGen::CPUState::Header.generate_cpu_state(ir_hash))
 File.write('cpu_state.cc', SimGen::CPUState::TranslationUnit.generate_cpu_state(ir_hash))
-
 File.write('base_exec_engine.hh', SimGen::BaseExecEngine::Header.generate_base_exec_engine(ir_hash))
 File.write('base_exec_engine.cc', SimGen::BaseExecEngine::TranslationUnit.generate_base_exec_engine(ir_hash))
 File.write('naive_interpreter.hh', SimGen::NaiveInterpreter::Header.generate_naive_interpreter(ir_hash))
@@ -68,3 +69,4 @@ File.write('decoder.cc', SimGen::Decoder::TranslationUnit.generate_decoder(ir_ha
 File.write('isa.hh', SimGen::ISA::Header.generate_isa_header(ir_hash))
 File.write('hart.hh', SimGen::Hart::Header.generate_hart(ir_hash))
 File.write('hart.cc', SimGen::Hart::TranslationUnit.generate_hart(ir_hash))
+File.write('base_ops.h', SimGen.generate_base_ops)
