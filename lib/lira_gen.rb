@@ -1,4 +1,4 @@
-# lira_gen.rb
+# lira/lira_gen.rb
 #!/usr/bin/env ruby
 
 require_relative 'ADL/base'
@@ -30,35 +30,41 @@ class LiraSerializer
   end
 
   def process_binary_op(name, oprnds)
-    # Convert logical shift to arithmetic shift if the left operand is signed
-    if name == :shr && oprnds[1].type.to_s.start_with?('s')
-      name = :ashr
-    end
-    op_class = Lira.const_get(ADLToLiraUtils::OP_MAP[name])
     a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
     return nil if a.nil? || b.nil?
-    target_width = [a.width, b.width].max
-    a = ADLToLiraUtils.ensure_width(a, target_width, @builder)
-    b = ADLToLiraUtils.ensure_width(b, target_width, @builder)
-    out = @builder.seq.new_temp(target_width)
-    @builder.seq.add_op(op_class.new(target_width), [a.name, b.name], [out.name])
+    out = ADLToLiraUtils.binary_op(@builder, name, oprnds[1].type, a, b)
+    @vars[oprnds[0]] = out
     out
   end
 
   def process_cmp_op(name, oprnds)
-    out = @builder.seq.new_temp(1)
-    op1_type = oprnds[1]&.type.to_s
-    unsigned = op1_type.start_with?('u')
-    op_map = unsigned ? ADLToLiraUtils::CMP_OP_MAP_U : ADLToLiraUtils::CMP_OP_MAP_S
-    op_class = Lira.const_get(op_map[name])
     a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
     return nil if a.nil? || b.nil?
-    target_width = [a.width, b.width].max
-    a = ADLToLiraUtils.ensure_width(a, target_width, @builder)
-    b = ADLToLiraUtils.ensure_width(b, target_width, @builder)
-    @builder.seq.add_op(op_class.new(target_width), [a.name, b.name], [out.name])
+    unsigned = oprnds[1].type.to_s.start_with?('u')
+    out = ADLToLiraUtils.cmp_op(@builder, name, a, b, unsigned)
+    @vars[oprnds[0]] = out
+    out
+  end
+
+  def process_rem(oprnds)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
+    return nil if a.nil? || b.nil?
+    unsigned = oprnds[1].type.to_s.start_with?('u')
+    out = ADLToLiraUtils.rem_op(@builder, a, b, unsigned)
+    @vars[oprnds[0]] = out
+    out
+  end
+
+  def process_div(oprnds)
+    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
+    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
+    return nil if a.nil? || b.nil?
+    unsigned = oprnds[1].type.to_s.start_with?('u')
+    out = ADLToLiraUtils.div_op(@builder, a, b, unsigned)
+    @vars[oprnds[0]] = out
     out
   end
 
@@ -110,13 +116,7 @@ class LiraSerializer
       end
       @builder.env(ef, [val])
     else
-      rf_name = reg_var.regset.to_s
-      rf = find_register_file(rf_name)
-      if rf.nil?
-        warn "Register file '#{rf_name}' not found, skipping statement"
-        return nil
-      end
-      @builder.write(rf, reg_var.name.to_s, val)
+      warn "Register file '#{rf_name}' not found, skipping statement"
     end
     nil
   end
@@ -183,27 +183,6 @@ class LiraSerializer
         out = @builder.extend_sign(src, dest_width)
       end
     end
-    @vars[oprnds[0]] = out
-    out
-  end
-
-  def process_rem(oprnds)
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
-    return nil if a.nil? || b.nil?
-    unsigned = oprnds[1].type.to_s.start_with?('u')
-    out = unsigned ? @builder.rem_u(a, b) : @builder.rem_s(a, b)
-    @vars[oprnds[0]] = out
-    out
-  end
-
-  def process_div(oprnds)
-    a = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
-    b = ADLToLiraUtils.resolve_operand(oprnds[2], @builder, @vars, @operand_names, @arch_builder)
-    return nil if a.nil? || b.nil?
-    unsigned = oprnds[1].type.to_s.start_with?('u')
-    default = @builder.const(0, 32)
-    out = unsigned ? @builder.div_u(a, b, default) : @builder.div_s(a, b, default)
     @vars[oprnds[0]] = out
     out
   end
@@ -328,22 +307,10 @@ class LiraSerializer
           field_name = rhs.name.to_s[2..-1]
           field = instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
           if field
-            low_bit = field.to
-            high_bit = field.from
-            width = high_bit - low_bit + 1
-            shifted = @builder.lsr(enc, @builder.const(low_bit, 32))
-            val = @builder.extract_low(shifted, width)
-            if ADLToLiraUtils.convert_type(lhs.type) != width
-              if lhs.type.to_s.start_with?('s')
-                val = @builder.extend_sign(val, ADLToLiraUtils.convert_type(lhs.type))
-              else
-                val = @builder.extend_zero(val, ADLToLiraUtils.convert_type(lhs.type))
-              end
-            end
+            val = ADLToLiraUtils.extract_field(@builder, enc, field, lhs.type)
             @vars[lhs] = val
           else
-            rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @vars, [], @arch_builder)
-            @vars[lhs] = rhs_val if rhs_val
+            warn "Field #{field_name} not found"
           end
         else
           rhs_val = ADLToLiraUtils.resolve_operand(rhs, @builder, @vars, [], @arch_builder)
@@ -357,7 +324,6 @@ class LiraSerializer
           dest_type = lhs.type
           dest_width = ADLToLiraUtils.convert_type(dest_type)
           dest_width = 1 if dest_width < 1
-          # Truncate if src is wider than the expected source type
           src_expected_width = ADLToLiraUtils.convert_type(rhs.type)
           if src.width > src_expected_width
             src = @builder.extract_low(src, src_expected_width)
@@ -376,18 +342,7 @@ class LiraSerializer
           field_name = rhs.name.to_s[2..-1]
           field = instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
           if field
-            low_bit = field.to
-            high_bit = field.from
-            width = high_bit - low_bit + 1
-            shifted = @builder.lsr(enc, @builder.const(low_bit, 32))
-            val = @builder.extract_low(shifted, width)
-            if ADLToLiraUtils.convert_type(lhs.type) != width
-              if lhs.type.to_s.start_with?('s')
-                val = @builder.extend_sign(val, ADLToLiraUtils.convert_type(lhs.type))
-              else
-                val = @builder.extend_zero(val, ADLToLiraUtils.convert_type(lhs.type))
-              end
-            end
+            val = ADLToLiraUtils.extract_field(@builder, enc, field, lhs.type)
             @vars[lhs] = val
           else
             warn "Field #{field_name} not found"
@@ -528,7 +483,7 @@ class LiraSerializer
 
     operand_sizes = operand_vars.map { |v| ADLToLiraUtils.convert_type(v.type) }
 
-    encoding = Lira::InstructionEncoding.new(32, const_part, const_mask, decode_snippets, encode_snippet || '', '', '')
+    encoding = Lira::InstructionEncoding.new(32, const_part, const_mask, decode_snippets, '', '', '')
     Lira::Instruction.new(instr.name.to_s, [], operand_sizes, operand_names, encoding, semantic)
   end
 
@@ -553,12 +508,12 @@ class LiraSerializer
       @arch_builder.add_env_func(lira_ef)
     end
 
-    unless @arch_builder.environment_functions.any? { |ef| ef.name == "getPC" }
-      @arch_builder.add_env_func(Lira::EnvironmentFunction.new("getPC", [], [], [32]))
-    end
-    unless @arch_builder.environment_functions.any? { |ef| ef.name == "setPC" }
-      @arch_builder.add_env_func(Lira::EnvironmentFunction.new("setPC", [], [32], []))
-    end
+    # unless @arch_builder.environment_functions.any? { |ef| ef.name == "getPC" }
+    @arch_builder.add_env_func(Lira::EnvironmentFunction.new("getPC", [], [], [32]))
+    # end
+    # unless @arch_builder.environment_functions.any? { |ef| ef.name == "setPC" }
+    @arch_builder.add_env_func(Lira::EnvironmentFunction.new("setPC", [], [32], []))
+    # end
 
     SimInfra.class_variable_get(:@@instructions).each do |instr|
       begin

@@ -1,33 +1,37 @@
-# lira_utils.rb
+# lira/lira_utils.rb
+
+require_relative '../lira/ir_ops'
+
 module ADLToLiraUtils
+
   OP_MAP = {
-    add: :Add,
-    sub: :Sub,
-    mul: :Mul,
-    and: :And,
-    or: :Orr,
-    xor: :Xor,
-    shl: :Lsl,
-    shr: :Lsr,
-    ashr: :Asr
+    add: Lira::Add,
+    sub: Lira::Sub,
+    mul: Lira::Mul,
+    and: Lira::And,
+    or: Lira::Orr,
+    xor: Lira::Xor,
+    shl: Lira::Lsl,
+    shr: Lira::Lsr,
+    ashr: Lira::Asr
   }.freeze
 
   CMP_OP_MAP_S = {
-    lt: :Slt,
-    gt: :Sgt,
-    le: :Sle,
-    ge: :Sge,
-    eq: :Eq,
-    ne: :Ne
+    eq: Lira::Eq,
+    ne: Lira::Ne,
+    lt: Lira::Slt,
+    gt: Lira::Sgt,
+    le: Lira::Sle,
+    ge: Lira::Sge
   }.freeze
 
   CMP_OP_MAP_U = {
-    lt: :Ult,
-    gt: :Ugt,
-    le: :Ule,
-    ge: :Uge,
-    eq: :Eq,
-    ne: :Ne
+    eq: Lira::Eq,
+    ne: Lira::Ne,
+    lt: Lira::Ult,
+    gt: Lira::Ugt,
+    le: Lira::Ule,
+    ge: Lira::Uge
   }.freeze
 
   SPECIAL_REGS = %w[pc].freeze
@@ -108,5 +112,55 @@ module ADLToLiraUtils
     arch_builder.environment_functions.find do |ef|
       ef.name == name && ef.inputs == input_types && ef.outputs == output_types
     end
+  end
+
+  def self.binary_op(builder, op_name, lhs_type, a, b)
+    if op_name == :shr && lhs_type.to_s.start_with?('s')
+      op_name = :ashr
+    end
+    op_class = OP_MAP[op_name]
+    target_width = [a.width, b.width].max
+    a = ensure_width(a, target_width, builder)
+    b = ensure_width(b, target_width, builder)
+    out = builder.seq.new_temp(target_width)
+    builder.seq.add_op(op_class.new(target_width), [a.name, b.name], [out.name])
+    out
+  end
+
+  def self.cmp_op(builder, op_name, a, b, unsigned)
+    op_map = unsigned ? CMP_OP_MAP_U : CMP_OP_MAP_S
+    op_class = op_map[op_name]
+    target_width = [a.width, b.width].max
+    a = ensure_width(a, target_width, builder)
+    b = ensure_width(b, target_width, builder)
+    out = builder.seq.new_temp(1)
+    builder.seq.add_op(op_class.new(target_width), [a.name, b.name], [out.name])
+    out
+  end
+
+  def self.rem_op(builder, a, b, unsigned)
+    unsigned ? builder.rem_u(a, b) : builder.rem_s(a, b)
+  end
+
+  def self.div_op(builder, a, b, unsigned, default = nil)
+    default ||= builder.const(0, a.width)
+    unsigned ? builder.div_u(a, b, default) : builder.div_s(a, b, default)
+  end
+
+  def self.extract_field(builder, enc, field, dest_type)
+    low_bit = field.to
+    high_bit = field.from
+    width = high_bit - low_bit + 1
+    shifted = builder.lsr(enc, builder.const(low_bit, 32))
+    val = builder.extract_low(shifted, width)
+    dest_width = convert_type(dest_type)
+    if width != dest_width
+      if dest_type.to_s.start_with?('s')
+        val = builder.extend_sign(val, dest_width)
+      else
+        val = builder.extend_zero(val, dest_width)
+      end
+    end
+    val
   end
 end
