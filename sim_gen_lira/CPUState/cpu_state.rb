@@ -133,48 +133,21 @@ module SimGen
       end
 
       def gen_input_args(args)
-        args.map do |arg|
-          case arg
-          when 8 then "uint8_t"
-          when 16 then "uint16_t"
-          when 32 then "uint32_t"
-          when 64 then "uint64_t"
-          else Utility::HelperCpp.gen_type(arg)
-          end
-        end.join(', ')
+        args.map { |arg| Utility::HelperCpp.gen_type(arg) }.join(', ')
       end
 
       def generate_interface_func(interface_functions)
         emitter = Utility::GenEmitter.new
+
         emitter.emit_line('// Interface functions')
         interface_functions.each do |ifunc|
-          # Для возвращаемых типов тоже сопоставляем
-          ret_types = ifunc[:return_types].map do |t|
-            case t
-            when 8 then "uint8_t"
-            when 16 then "uint16_t"
-            when 32 then "uint32_t"
-            when 64 then "uint64_t"
-            else Utility::HelperCpp.gen_type(t)
-            end
-          end
 
-          arg_types = ifunc[:argument_types].map do |t|
-            case t
-            when 8 then "uint8_t"
-            when 16 then "uint16_t"
-            when 32 then "uint32_t"
-            when 64 then "uint64_t"
-            else Utility::HelperCpp.gen_type(t)
-            end
-          end
-
-          if ret_types.empty?
-            emitter.emit_line("void #{ifunc[:name]}(#{arg_types.join(', ')});")
-          elsif ret_types.size == 1
-            emitter.emit_line("#{ret_types[0]} #{ifunc[:name]}(#{arg_types.join(', ')});")
+          if ifunc[:return_types].size == 0
+            emitter.emit_line("void #{ifunc[:name]}(#{gen_input_args(ifunc[:argument_types])});")
+          elsif ifunc[:return_types].size == 1
+            emitter.emit_line("#{gen_input_args(ifunc[:return_types])} #{ifunc[:name]}(#{gen_input_args(ifunc[:argument_types])});")
           else
-            emitter.emit_line("std::tuple<#{ret_types.join(', ')}> #{ifunc[:name]}(#{arg_types.join(', ')});")
+            emitter.emit_line("std::tuple<#{gen_input_args(ifunc[:return_types])}> #{ifunc[:name]}(#{gen_input_args(ifunc[:argument_types])});")
           end
         end
         emitter.emit_blank_line
@@ -259,52 +232,8 @@ public:
       module_function
 
       def generate_cpu_state(input_ir)
-        interface_functions = input_ir[:interface_functions]
-        implementations = []
-
-        interface_functions.each do |ifunc|
-          name = ifunc[:name]
-
-          if name =~ /^readMem(\d+)$/
-            width = $1.to_i
-            ret_type = case width
-                       when 8 then "uint8_t"
-                       when 16 then "uint16_t"
-                       when 32 then "uint32_t"
-                       else "uint#{width}_t"
-                       end
-            implementations << <<~CPP
-              #{ret_type} CPU::#{name}(uint32_t addr) {
-                  return m_memory->read<#{ret_type}>(addr);
-              }
-            CPP
-          elsif name =~ /^writeMem(\d+)$/
-            width = $1.to_i
-            val_type = case width
-                       when 8 then "uint8_t"
-                       when 16 then "uint16_t"
-                       when 32 then "uint32_t"
-                       else "uint#{width}_t"
-                       end
-            implementations << <<~CPP
-              void CPU::#{name}(uint32_t addr, #{val_type} value) {
-                  m_memory->write<#{val_type}>(addr, value);
-              }
-            CPP
-          end
-        end
-
-        <<~CPP
-          #include "cpu_state.hh"
-          #include "memory.hh"
-          #include <fmt/core.h>
-
-          namespace prot::state {
-
-          #{implementations.join("\n")}
-
-          } // namespace prot::state
-        CPP
+        # Currently, no implementation is needed for the CPUState translation unit.
+        ''
       end
     end
   end
