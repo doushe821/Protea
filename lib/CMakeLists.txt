@@ -1,10 +1,35 @@
 project(protea_irgen)
 
+set(NATIVE_IR_FILE ${CMAKE_CURRENT_BINARY_DIR}/IR.yaml)
+
 add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/IR.yaml
+  OUTPUT ${NATIVE_IR_FILE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ir_gen.rb
   COMMAND ${BUNDLE_PATH} exec ruby ${CMAKE_CURRENT_SOURCE_DIR}/ir_gen.rb
-  COMMENT "Running ${PROJECT_NAME}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Generating native IR (IR.yaml)"
 )
-add_custom_target(${PROJECT_NAME} DEPENDS ${PROJECT_BINARY_DIR}/IR.yaml)
-install(FILES ${PROJECT_BINARY_DIR}/IR.yaml DESTINATION share/)
+
+add_custom_target(native_gen DEPENDS ${NATIVE_IR_FILE})
+
+set(LIRA_IR_FILE ${CMAKE_CURRENT_BINARY_DIR}/lira.yaml)
+
+add_custom_command(
+  OUTPUT ${LIRA_IR_FILE}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lira_gen.rb
+  COMMAND ${BUNDLE_PATH} exec ruby ${CMAKE_CURRENT_SOURCE_DIR}/lira_gen.rb
+                          --target ${CMAKE_SOURCE_DIR}/lib/Target/RISC-V/
+                          --output ${LIRA_IR_FILE}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Generating LIRA IR (lira.yaml)"
+)
+
+add_custom_target(lira_gen DEPENDS ${LIRA_IR_FILE})
+
+add_custom_target(protea_irgen DEPENDS native_gen)
+
+set(NATIVE_IR_FILE ${NATIVE_IR_FILE} PARENT_SCOPE)
+set(LIRA_IR_FILE ${LIRA_IR_FILE} PARENT_SCOPE)
+
+install(FILES ${NATIVE_IR_FILE} DESTINATION share/)
+install(FILES ${LIRA_IR_FILE} DESTINATION share/)

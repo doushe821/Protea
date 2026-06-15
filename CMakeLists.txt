@@ -30,5 +30,6 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(sim_lib)
+add_subdirectory(sim_gen)
 add_subdirectory(sim_gen_lira)
 add_subdirectory(test)
