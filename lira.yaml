@@ -82,37 +82,37 @@
   :attributes: []
   :inputs: []
   :outputs: []
-- :name: writeMem
+- :name: writeMem8
   :attributes: []
   :inputs:
   - 32
   - 8
   :outputs: []
-- :name: writeMem
+- :name: writeMem16
   :attributes: []
   :inputs:
   - 32
   - 16
   :outputs: []
-- :name: writeMem
+- :name: writeMem32
   :attributes: []
   :inputs:
   - 32
   - 32
   :outputs: []
-- :name: readMem
+- :name: readMem8
   :attributes: []
   :inputs:
   - 32
   :outputs:
   - 8
-- :name: readMem
+- :name: readMem16
   :attributes: []
   :inputs:
   - 32
   :outputs:
   - 16
-- :name: readMem
+- :name: readMem32
   :attributes: []
   :inputs:
   - 32
@@ -1150,7 +1150,7 @@
     1 32 _t11 = const 0;
     1 32 _t12 = op lsr_32 _t10 _t11;
     1 8 _t13 = op extract_low_32_to_8 _t12;
-    1 = env writeMem _t6 _t13;
+    1 = env writeMem8 _t6 _t13;
 - :name: sh
   :attributes: []
   :operand_sizes:
@@ -1180,7 +1180,7 @@
     1 32 _t11 = const 0;
     1 32 _t12 = op lsr_32 _t10 _t11;
     1 16 _t13 = op extract_low_32_to_16 _t12;
-    1 = env writeMem _t6 _t13;
+    1 = env writeMem16 _t6 _t13;
 - :name: sw
   :attributes: []
   :operand_sizes:
@@ -1207,7 +1207,7 @@
     1 32 _t6 = op add_32 _t4 _t5;
     1 32 _t8 = input 2;
     1 32 _t9 = read XRegs _t8;
-    1 = env writeMem _t6 _t9;
+    1 = env writeMem32 _t6 _t9;
 - :name: lb
   :attributes: []
   :operand_sizes:
@@ -1232,7 +1232,7 @@
     1 32 _t4 = read XRegs _t3;
     1 32 _t5 = input 0;
     1 32 _t6 = op add_32 _t4 _t5;
-    1 8 _t8 = env readMem _t6;
+    1 8 _t8 = env readMem8 _t6;
     1 32 _t10 = op extend_sign_8_to_32 _t8;
     1 32 _t11 = input 2;
     1 = write XRegs _t11 _t10;
@@ -1260,7 +1260,7 @@
     1 32 _t4 = read XRegs _t3;
     1 32 _t5 = input 0;
     1 32 _t6 = op add_32 _t4 _t5;
-    1 16 _t8 = env readMem _t6;
+    1 16 _t8 = env readMem16 _t6;
     1 32 _t10 = op extend_sign_16_to_32 _t8;
     1 32 _t11 = input 2;
     1 = write XRegs _t11 _t10;
@@ -1288,7 +1288,7 @@
     1 32 _t4 = read XRegs _t3;
     1 32 _t5 = input 0;
     1 32 _t6 = op add_32 _t4 _t5;
-    1 32 _t8 = env readMem _t6;
+    1 32 _t8 = env readMem32 _t6;
     1 32 _t9 = input 2;
     1 = write XRegs _t9 _t8;
 - :name: lbu
@@ -1315,7 +1315,7 @@
     1 32 _t4 = read XRegs _t3;
     1 32 _t5 = input 0;
     1 32 _t6 = op add_32 _t4 _t5;
-    1 8 _t8 = env readMem _t6;
+    1 8 _t8 = env readMem8 _t6;
     1 32 _t10 = op extend_zero_8_to_32 _t8;
     1 32 _t11 = input 2;
     1 = write XRegs _t11 _t10;
@@ -1343,7 +1343,7 @@
     1 32 _t4 = read XRegs _t3;
     1 32 _t5 = input 0;
     1 32 _t6 = op add_32 _t4 _t5;
-    1 16 _t8 = env readMem _t6;
+    1 16 _t8 = env readMem16 _t6;
     1 32 _t10 = op extend_zero_16_to_32 _t8;
     1 32 _t11 = input 2;
     1 = write XRegs _t11 _t10;
