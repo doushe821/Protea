@@ -1,4 +1,5 @@
 require_relative '../lib/lira/ir'
+require_relative '../lib/Utility/helper_cpp'
 
 module LiraCppGen
   class Translator
@@ -24,7 +25,7 @@ module LiraCppGen
         if stmt && stmt.respond_to?(:outputs_types) && stmt.outputs_types.any?
           width = stmt.outputs_types[0]
         end
-        emit("#{type_name(width)} #{name} = 0;")
+        emit("#{Utility::HelperCpp.gen_type(width)} #{name} = 0;")
         @var_widths[name] = width
         return name
       end
@@ -53,7 +54,7 @@ module LiraCppGen
       inputs = stmt.inputs.map { |i| resolve_var(i, stmt) }
 
       unless @var_widths.key?(out)
-        emit("#{type_name(out_width)} #{out};")
+        emit("#{Utility::HelperCpp.gen_type(out_width)} #{out};")
         @var_widths[out] = out_width
       end
 
@@ -107,7 +108,7 @@ module LiraCppGen
       out = stmt.outputs[0]
       width = stmt.outputs_types[0]
       unless @var_widths.key?(out)
-        emit("#{type_name(width)} #{out} = #{value};")
+        emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{value};")
         @var_widths[out] = width
       end
     end
@@ -117,7 +118,7 @@ module LiraCppGen
       out = stmt.outputs[0]
       width = stmt.outputs_types[0]
       unless @var_widths.key?(out)
-        emit("#{type_name(width)} #{out} = #{name};")
+        emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{name};")
         @var_widths[out] = width
       end
     end
@@ -128,11 +129,11 @@ module LiraCppGen
       out = stmt.outputs[0]
       width = stmt.outputs_types[0]
       unless @var_widths.key?(out)
-        emit("#{type_name(width)} #{out};")
+        emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
         @var_widths[out] = width
       end
       if @context == :execute
-        emit("#{out} = cpu.get#{rf}<#{type_name(width)}>(#{idx});")
+        emit("#{out} = cpu.get#{rf}<#{Utility::HelperCpp.gen_type(width)}>(#{idx});")
       else
         emit("#{out} = 0; // read in decode")
       end
@@ -170,7 +171,7 @@ module LiraCppGen
             out = outputs[0]
             width = out_types[0]
             unless @var_widths.key?(out)
-              emit("#{type_name(width)} #{out};")
+              emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
               @var_widths[out] = width
             end
             emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
@@ -178,7 +179,7 @@ module LiraCppGen
             outputs.each_with_index do |out, i|
               width = out_types[i]
               unless @var_widths.key?(out)
-                emit("#{type_name(width)} #{out};")
+                emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
                 @var_widths[out] = width
               end
             end
@@ -199,7 +200,7 @@ module LiraCppGen
         outputs.each_with_index do |out, i|
           width = stmt.outputs_types[i]
           unless @var_widths.key?(out)
-            emit("#{type_name(width)} #{out};")
+            emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
             @var_widths[out] = width
           end
           emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
@@ -219,7 +220,7 @@ module LiraCppGen
       out = stmt.outputs[0]
       width = stmt.outputs_types[0]
       unless @var_widths.key?(out)
-        emit("#{type_name(width)} #{out};")
+        emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
         @var_widths[out] = width
       end
       if @context == :decode
@@ -233,20 +234,6 @@ module LiraCppGen
       val = resolve_var(stmt.inputs[0], stmt)
       idx = stmt.specifier.to_i
       emit("insn.operand#{idx} = #{val};")
-    end
-
-    def type_name(width)
-      sizes = [1, 8, 16, 32, 64, 128]
-      rounded = sizes.find { |s| s >= width } || 128
-      case rounded
-      when 1   then "bool"
-      when 8   then "uint8_t"
-      when 16  then "uint16_t"
-      when 32  then "uint32_t"
-      when 64  then "uint64_t"
-      when 128 then "unsigned __int128"
-      else "uint#{rounded}_t"
-      end
     end
 
     def emit(line)

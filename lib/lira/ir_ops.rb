@@ -1,5 +1,6 @@
 # lira/ir_ops.rb
 require_relative 'arch'
+require_relative '../Utility/helper_cpp'
 
 module Lira
   class TypeCheckError < StandardError; end
@@ -7,21 +8,6 @@ module Lira
   module StdOperation
     def base_name
       self.class.name.split('::').last.downcase
-    end
-
-    def type_name(width, signed = false)
-      sizes = [1, 8, 16, 32, 64, 128]
-      prefix = signed ? "" : "u"
-      rounded = sizes.find { |s| s >= width } || 128
-      case rounded
-      when 1   then "bool"
-      when 8   then "#{prefix}int8_t"
-      when 16  then "#{prefix}int16_t"
-      when 32  then "#{prefix}int32_t"
-      when 64  then "#{prefix}int64_t"
-      when 128 then "#{prefix}int128_t"
-      else "#{prefix}int#{rounded}_t"
-      end
     end
 
     def generate_name
@@ -37,11 +23,11 @@ module Lira
     end
 
     def cpp_return_type
-      type_name(outputs[0])
+      Utility::HelperCpp.gen_type(outputs[0])
     end
 
     def cpp_params
-      inputs.map.with_index { |w, i| "#{type_name(w)} #{('a'.ord + i).chr}" }.join(", ")
+      inputs.map.with_index { |w, i| "#{Utility::HelperCpp.gen_type(w)} #{('a'.ord + i).chr}" }.join(", ")
     end
 
     def cpp_body
@@ -56,19 +42,19 @@ module Lira
       when 'xor' then 'return a ^ b;'
       when 'eq'  then 'return (a == b) ? 1 : 0;'
       when 'ne'  then 'return (a != b) ? 1 : 0;'
-      when 'slt' then "return ((#{type_name(inputs[0], true)})a < (#{type_name(inputs[0], true)})b) ? 1 : 0;"
-      when 'sle' then "return ((#{type_name(inputs[0], true)})a <= (#{type_name(inputs[0], true)})b) ? 1 : 0;"
-      when 'sgt' then "return ((#{type_name(inputs[0], true)})a > (#{type_name(inputs[0], true)})b) ? 1 : 0;"
-      when 'sge' then "return ((#{type_name(inputs[0], true)})a >= (#{type_name(inputs[0], true)})b) ? 1 : 0;"
+      when 'slt' then "return ((#{Utility::HelperCpp.gen_type(inputs[0], true)})a < (#{Utility::HelperCpp.gen_type(inputs[0], true)})b) ? 1 : 0;"
+      when 'sle' then "return ((#{Utility::HelperCpp.gen_type(inputs[0], true)})a <= (#{Utility::HelperCpp.gen_type(inputs[0], true)})b) ? 1 : 0;"
+      when 'sgt' then "return ((#{Utility::HelperCpp.gen_type(inputs[0], true)})a > (#{Utility::HelperCpp.gen_type(inputs[0], true)})b) ? 1 : 0;"
+      when 'sge' then "return ((#{Utility::HelperCpp.gen_type(inputs[0], true)})a >= (#{Utility::HelperCpp.gen_type(inputs[0], true)})b) ? 1 : 0;"
       when 'ult' then "return (a < b) ? 1 : 0;"
       when 'ule' then "return (a <= b) ? 1 : 0;"
       when 'ugt' then "return (a > b) ? 1 : 0;"
       when 'uge' then "return (a >= b) ? 1 : 0;"
       when 'lsl' then "b &= #{inputs[0] - 1}; return a << b;"
       when 'lsr' then "b &= #{inputs[0] - 1}; return a >> b;"
-      when 'asr' then "b &= #{inputs[0] - 1}; return (#{type_name(inputs[0])})((#{type_name(inputs[0], true)})a >> b);"
+      when 'asr' then "b &= #{inputs[0] - 1}; return (#{Utility::HelperCpp.gen_type(inputs[0])})((#{Utility::HelperCpp.gen_type(inputs[0], true)})a >> b);"
       when 'div_u' then 'return (b == 0) ? c : a / b;'
-      when 'div_s' then "return (b == 0) ? c : (#{type_name(inputs[0])})((#{type_name(inputs[0], true)})a / (#{type_name(inputs[0], true)})b);"
+      when 'div_s' then "return (b == 0) ? c : (#{Utility::HelperCpp.gen_type(inputs[0])})((#{Utility::HelperCpp.gen_type(inputs[0], true)})a / (#{Utility::HelperCpp.gen_type(inputs[0], true)})b);"
       when 'select' then 'return cond ? a : b;'
       when 'rem_u' then
         <<~CPP
@@ -78,8 +64,8 @@ module Lira
       when 'rem_s' then
         <<~CPP
         if (b == 0) return a;
-        #{type_name(inputs[0], true)} res = (#{type_name(inputs[0], true)})a % (#{type_name(inputs[0], true)})b;
-        return (#{type_name(inputs[0])})res;
+        #{Utility::HelperCpp.gen_type(inputs[0], true)} res = (#{Utility::HelperCpp.gen_type(inputs[0], true)})a % (#{Utility::HelperCpp.gen_type(inputs[0], true)})b;
+        return (#{Utility::HelperCpp.gen_type(inputs[0])})res;
         CPP
       else
         raise "No cpp_body defined for operation #{semantic_base}"
@@ -156,7 +142,7 @@ module Lira
     end
 
     def cpp_return_type
-      type_name(1)
+      Utility::HelperCpp.gen_type(1)
     end
 
     def check_signature
@@ -210,11 +196,11 @@ module Lira
     end
 
     def cpp_return_type
-      type_name(outputs[0])
+      Utility::HelperCpp.gen_type(outputs[0])
     end
 
     def cpp_params
-      "#{type_name(outputs[0])} a"
+      "#{Utility::HelperCpp.gen_type(outputs[0])} a"
     end
   end
 
@@ -239,11 +225,11 @@ module Lira
     end
 
     def cpp_return_type
-      type_name(outputs[0])
+      Utility::HelperCpp.gen_type(outputs[0])
     end
 
     def cpp_params
-      "#{type_name(outputs[0])} a"
+      "#{Utility::HelperCpp.gen_type(outputs[0])} a"
     end
   end
 
@@ -273,10 +259,10 @@ module Lira
     def initialize(in_bits, out_bits); super(in_bits, out_bits, 'extend_sign'); end
     def cpp_body
       <<~СPP
-      #{type_name(outputs[0])} val = a & ((1U << #{inputs[0]}) - 1);
-      #{type_name(outputs[0])} sign = (val >> (#{inputs[0]} - 1)) & 1;
+      #{Utility::HelperCpp.gen_type(outputs[0])} val = a & (((#{Utility::HelperCpp.gen_type(outputs[0])})1 << #{inputs[0]}) - 1);
+      #{Utility::HelperCpp.gen_type(outputs[0])} sign = (val >> (#{inputs[0]} - 1)) & 1;
       if (sign)
-        return val | (~((1U << #{inputs[0]}) - 1));
+        return val | (~(((#{Utility::HelperCpp.gen_type(outputs[0])})1 << #{inputs[0]}) - 1));
       else
         return val;
       СPP
@@ -286,14 +272,14 @@ module Lira
   class ExtendZero < ExtendOp
     def initialize(in_bits, out_bits); super(in_bits, out_bits, 'extend_zero'); end
     def cpp_body
-      "return a & ((1U << #{inputs[0]}) - 1);"
+      "return a & (((#{Utility::HelperCpp.gen_type(outputs[0])})1 << #{inputs[0]}) - 1);"
     end
   end
 
   class ExtractLow < ExtractLowOp
     def initialize(in_bits, out_bits); super(in_bits, out_bits); end
     def cpp_body
-      "return a & ((1U << #{outputs[0]}) - 1);"
+      "return a & (((#{Utility::HelperCpp.gen_type(inputs[0])})1 << #{outputs[0]}) - 1);"
     end
   end
 
@@ -469,7 +455,7 @@ module Lira
     end
 
     def cpp_params
-      "uint8_t cond, #{type_name(inputs[1])} a, #{type_name(inputs[1])} b"
+      "uint8_t cond, #{Utility::HelperCpp.gen_type(inputs[1])} a, #{Utility::HelperCpp.gen_type(inputs[1])} b"
     end
   end
 end
