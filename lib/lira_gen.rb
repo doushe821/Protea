@@ -121,14 +121,14 @@ class LiraSerializer
     nil
   end
 
-  def process_read_mem(oprnds)
+  def process_read_mem(name, oprnds)
     out_type = ADLToLiraUtils.convert_type(oprnds[0].type)
     addr = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     return nil if addr.nil?
     addr_width = addr.width
-    ef = ADLToLiraUtils.find_env_func(@arch_builder, "readMem", [addr_width], [out_type])
+    ef = ADLToLiraUtils.find_env_func(@arch_builder, name.to_s, [addr_width], [out_type])
     if ef.nil?
-      warn "Environment function 'readMem' with inputs [#{addr_width}] and outputs [#{out_type}] not registered, skipping statement"
+      warn "Environment function #{name} wasn't registered, skipping statement"
       return nil
     end
     outs = @builder.env(ef, [addr])
@@ -137,14 +137,14 @@ class LiraSerializer
     out
   end
 
-  def process_write_mem(oprnds)
+  def process_write_mem(name, oprnds)
     addr = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @vars, @operand_names, @arch_builder)
     val = ADLToLiraUtils.resolve_operand(oprnds[1], @builder, @vars, @operand_names, @arch_builder)
     return nil if addr.nil? || val.nil?
     addr_width = addr.width
-    ef = ADLToLiraUtils.find_env_func(@arch_builder, "writeMem", [addr_width, val.width], [])
+    ef = ADLToLiraUtils.find_env_func(@arch_builder, name.to_s, [addr_width, val.width], [])
     if ef.nil?
-      warn "Environment function 'writeMem' with inputs [#{addr_width}, #{val.width}] not registered, skipping statement"
+      warn "Environment function #{name} wasn't registered, skipping statement"
       return nil
     end
     @builder.env(ef, [addr, val])
@@ -234,10 +234,10 @@ class LiraSerializer
       process_write_reg(oprnds)
 
     when :readMem
-      process_read_mem(oprnds)
+      process_read_mem(stmt.attrs, oprnds)
 
     when :writeMem
-      process_write_mem(oprnds)
+      process_write_mem(stmt.attrs, oprnds)
 
     when :branch
       target = ADLToLiraUtils.resolve_operand(oprnds[0], @builder, @vars, @operand_names, @arch_builder)
@@ -508,12 +508,8 @@ class LiraSerializer
       @arch_builder.add_env_func(lira_ef)
     end
 
-    # unless @arch_builder.environment_functions.any? { |ef| ef.name == "getPC" }
     @arch_builder.add_env_func(Lira::EnvironmentFunction.new("getPC", [], [], [32]))
-    # end
-    # unless @arch_builder.environment_functions.any? { |ef| ef.name == "setPC" }
     @arch_builder.add_env_func(Lira::EnvironmentFunction.new("setPC", [], [32], []))
-    # end
 
     SimInfra.class_variable_get(:@@instructions).each do |instr|
       begin

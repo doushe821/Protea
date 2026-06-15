@@ -33,13 +33,7 @@ ir_hash = {
   interface_functions: arch.environment_functions
     .reject { |ef| ['setPC', 'getPC'].include?(ef.name) }
     .map do |ef|
-      name = ef.name
-      if name == 'readMem' && ef.outputs.size == 1
-        name = "readMem#{ef.outputs[0]}"
-      elsif name == 'writeMem' && ef.inputs.size == 2
-        name = "writeMem#{ef.inputs[1]}"
-      end
-      { name: name, argument_types: ef.inputs, return_types: ef.outputs }
+      { name: ef.name, argument_types: ef.inputs, return_types: ef.outputs }
     end,
   instructions: arch.instructions.map do |insn|
     {
