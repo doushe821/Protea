@@ -6,7 +6,8 @@ module SimGen
       module_function
 
       def generate_base_exec_engine(input_ir)
-"#ifndef GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
+<<~CPP
+#ifndef GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
 #define GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
 
 #include \"cpu_state.hh\"
@@ -26,7 +27,7 @@ struct ExecEngine {
 } // namespace prot::engine
 
 #endif // GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
-"
+CPP
       end
     end
 
@@ -35,10 +36,10 @@ struct ExecEngine {
 
       def generate_base_exec_engine(input_ir)
         max_xlen = SimGen::Helper::find_max_regsize(input_ir[:regfiles])
-
-"#include \"base_exec_engine.hh\"
-#include \"memory.hh\"
-#include \"decoder.hh\"
+<<~CPP
+#include "base_exec_engine.hh"
+#include "memory.hh"
+#include "decoder.hh"
 
 namespace prot::engine {
 using namespace prot::state;
@@ -53,7 +54,8 @@ void ExecEngine::step(CPU &cpu) {
   }
 }
 } // namespace prot::engine
-"      end
+CPP
+       end
     end
   end
 end
