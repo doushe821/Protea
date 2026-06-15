@@ -1,8 +1,282 @@
+# frozen_string_literal: true
+
 require_relative '../lib/lira/ir'
+require_relative 'cpp_ops'
 require_relative '../lib/Utility/helper_cpp'
 
 module LiraCppGen
+  module OpRegistry
+    BASE_TO_CLASS = {
+      'not' => Lira::Not,
+      'neg' => Lira::Neg,
+      'popcnt' => Lira::Popcnt,
+      'clz' => Lira::Clz,
+      'ctz' => Lira::Ctz,
+      'reverse' => Lira::Reverse,
+      'add' => Lira::Add,
+      'sub' => Lira::Sub,
+      'mul' => Lira::Mul,
+      'and' => Lira::And,
+      'orr' => Lira::Orr,
+      'xor' => Lira::Xor,
+      'lsl' => Lira::Lsl,
+      'lsr' => Lira::Lsr,
+      'asr' => Lira::Asr,
+      'eq' => Lira::Eq,
+      'ne' => Lira::Ne,
+      'slt' => Lira::Slt,
+      'sle' => Lira::Sle,
+      'sgt' => Lira::Sgt,
+      'sge' => Lira::Sge,
+      'ult' => Lira::Ult,
+      'ule' => Lira::Ule,
+      'ugt' => Lira::Ugt,
+      'uge' => Lira::Uge,
+      'div_s' => Lira::DivS,
+      'div_u' => Lira::DivU,
+      'rem_s' => Lira::RemS,
+      'rem_u' => Lira::RemU,
+      'ror' => Lira::Ror,
+      'rol' => Lira::Rol,
+      'add_overflow' => Lira::AddOverflow,
+      'sub_overflow' => Lira::SubOverflow,
+      'select' => Lira::Select,
+    }.freeze
+
+    SPECIAL = [
+      [/^extend_sign_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtendSign.new(m[1].to_i, m[2].to_i) }],
+      [/^extend_zero_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtendZero.new(m[1].to_i, m[2].to_i) }],
+      [/^extract_low_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtractLow.new(m[1].to_i, m[2].to_i) }]
+    ].freeze
+
+    def self.lookup(specifier)
+      SPECIAL.each do |pattern, factory|
+        m = specifier.match(pattern)
+        return factory.call(m) if m
+      end
+      parse_standard(specifier) or raise "Unknown operation: #{specifier}"
+    end
+
+    def self.parse_standard(specifier)
+      parts = specifier.split('_')
+      return nil unless parts.last.match?(/^\d+$/)
+
+      width = parts.pop.to_i
+      (1..parts.size).reverse_each do |len|
+        base = parts[0...len].join('_')
+        klass = BASE_TO_CLASS[base]
+        return klass.new(width) if klass
+      end
+      nil
+    end
+  end
+
+  class StmtEmitter
+    def initialize(translator)
+      @t = translator
+    end
+
+    def stmt
+      @t.current_stmt
+    end
+
+    def emit(line)
+      @t.emit(line)
+    end
+
+    def indent(&block)
+      @t.indent(&block)
+    end
+
+    def context
+      @t.context
+    end
+
+    def resolve_var(name)
+      @t.resolve_var(name, stmt)
+    end
+
+    def declare(name, width)
+      @t.declare_var(name, width)
+    end
+
+    def var_width(name)
+      @t.var_width(name)
+    end
+
+    def emit_code
+      raise NotImplementedError
+    end
+  end
+
+  class OpEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      out = s.outputs[0]
+      declare(out, s.outputs_types[0])
+      inputs = s.inputs.map { |i| resolve_var(i) }
+      op = OpRegistry.lookup(s.specifier)
+
+      if op.semantic_base == 'select'
+        emit("#{out} = #{inputs[0]} ? #{inputs[1]} : #{inputs[2]};")
+      else
+        emit("#{out} = #{op.cpp_func_name}(#{inputs.join(', ')});")
+      end
+    end
+  end
+
+  class ConstEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      out = s.outputs[0]
+      width = s.outputs_types[0]
+      return if @t.var_declared?(out)
+
+      emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{s.specifier};")
+      @t.register_var(out, width)
+    end
+  end
+
+  class DynConstEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      out = s.outputs[0]
+      width = s.outputs_types[0]
+      return if @t.var_declared?(out)
+
+      emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{s.specifier};")
+      @t.register_var(out, width)
+    end
+  end
+
+  class ReadEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      rf = s.specifier
+      idx = resolve_var(s.inputs[0])
+      out = s.outputs[0]
+      width = s.outputs_types[0]
+      declare(out, width)
+      if context == :execute
+        emit("#{out} = cpu.get#{rf}<#{Utility::HelperCpp.gen_type(width)}>(#{idx});")
+      else
+        emit("#{out} = 0; // read in decode")
+      end
+    end
+  end
+
+  class WriteEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      rf = s.specifier
+      idx = resolve_var(s.inputs[0])
+      val = resolve_var(s.inputs[1])
+      emit("cpu.set#{rf}(#{idx}, #{val});") if context == :execute
+    end
+  end
+
+  class EnvEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      func = s.specifier
+      inputs = s.inputs.map { |i| resolve_var(i) }
+      outputs = s.outputs
+      out_types = s.outputs_types
+
+      func = resolve_env_func(func, out_types, inputs)
+
+      return unless context == :execute
+
+      if outputs.empty?
+        emit("cpu.#{func}(#{inputs.join(', ')});")
+      elsif outputs.size == 1
+        out = outputs[0]
+        declare(out, out_types[0])
+        emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
+      else
+        outputs.each_with_index { |out, i| declare(out, out_types[i]) }
+        emit("std::tie(#{outputs.join(', ')}) = cpu.#{func}(#{inputs.join(', ')});")
+      end
+    end
+
+    private
+
+    def resolve_env_func(func, out_types, inputs)
+      if func == 'readMem' && out_types.size == 1
+        "readMem#{out_types[0]}"
+      elsif func == 'writeMem' && inputs.size >= 2
+        width = var_width(stmt.inputs[1]) || 32
+        "writeMem#{width}"
+      else
+        func
+      end
+    end
+  end
+
+  class CondEnvEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      cond = resolve_var(s.inputs[0])
+      inputs = s.inputs[1...-s.outputs.size].map { |i| resolve_var(i) }
+      on_false = s.inputs[-s.outputs.size..].map { |i| resolve_var(i) }
+      func = s.specifier
+
+      emit("if (#{cond}) {")
+      indent { emit_cond_true(s, func, inputs) }
+      emit('} else {')
+      indent { emit_cond_false(s, on_false) }
+      emit('}')
+    end
+
+    private
+
+    def emit_cond_true(st, func, inputs)
+      st.outputs.each_with_index do |out, i|
+        declare(out, st.outputs_types[i])
+        emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
+      end
+    end
+
+    def emit_cond_false(st, on_false)
+      st.outputs.each_with_index { |out, i| emit("#{out} = #{on_false[i]};") }
+    end
+  end
+
+  class InputEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      idx = s.specifier.to_i
+      out = s.outputs[0]
+      width = s.outputs_types[0]
+      declare(out, width)
+      emit(context == :decode ? "#{out} = raw_insn;" : "#{out} = insn.operand#{idx};")
+    end
+  end
+
+  class OutputEmitter < StmtEmitter
+    def emit_code
+      s = stmt
+      val = resolve_var(s.inputs[0])
+      idx = s.specifier.to_i
+      emit("insn.operand#{idx} = #{val};")
+    end
+  end
+
+  EMITTER_MAP = {
+    'op' => OpEmitter,
+    'const' => ConstEmitter,
+    'dyn_const' => DynConstEmitter,
+    'read' => ReadEmitter,
+    'write' => WriteEmitter,
+    'env' => EnvEmitter,
+    'cond_env' => CondEnvEmitter,
+    'input' => InputEmitter,
+    'output' => OutputEmitter
+  }.freeze
+
   class Translator
+    attr_reader :context, :current_stmt
+
     def initialize(seq, context = :execute, indent = 0)
       @seq = seq
       @context = context
@@ -16,234 +290,54 @@ module LiraCppGen
       @output.join("\n")
     end
 
-    private
+    def declare_var(name, width)
+      return if var_declared?(name)
 
-    def resolve_var(name, stmt = nil)
-      return name if @var_widths.key?(name)
+      emit("#{Utility::HelperCpp.gen_type(width)} #{name};")
+      register_var(name, width)
+    end
+
+    def var_declared?(name)
+      @var_widths.key?(name)
+    end
+
+    def var_width(name)
+      @var_widths[name]
+    end
+
+    def register_var(name, width)
+      @var_widths[name] = width
+    end
+
+    def resolve_var(name, stmt)
+      return name if var_declared?(name)
+
       if name =~ /^_t\d+$/
         width = 32
-        if stmt && stmt.respond_to?(:outputs_types) && stmt.outputs_types.any?
-          width = stmt.outputs_types[0]
-        end
+        width = stmt.outputs_types[0] if stmt.respond_to?(:outputs_types) && stmt.outputs_types.any?
         emit("#{Utility::HelperCpp.gen_type(width)} #{name} = 0;")
-        @var_widths[name] = width
+        register_var(name, width)
         return name
       end
       raise "Unknown variable #{name} in #{stmt&.inspect}"
     end
 
-    def translate_stmt(stmt)
-      case stmt.kind
-      when 'op'        then translate_op(stmt)
-      when 'const'     then translate_const(stmt)
-      when 'dyn_const' then translate_dyn_const(stmt)
-      when 'read'      then translate_read(stmt)
-      when 'write'     then translate_write(stmt)
-      when 'env'       then translate_env(stmt)
-      when 'cond_env'  then translate_cond_env(stmt)
-      when 'input'     then translate_input(stmt)
-      when 'output'    then translate_output(stmt)
-      else raise "Unknown statement kind: #{stmt.kind}"
-      end
-    end
-
-    def translate_op(stmt)
-      op_full = stmt.specifier
-      out = stmt.outputs[0]
-      out_width = stmt.outputs_types[0]
-      inputs = stmt.inputs.map { |i| resolve_var(i, stmt) }
-
-      unless @var_widths.key?(out)
-        emit("#{Utility::HelperCpp.gen_type(out_width)} #{out};")
-        @var_widths[out] = out_width
-      end
-
-      base_op = op_full.sub(/_\d+$/, '')
-
-      if ['div_u', 'div_s', 'divs', 'divu'].include?(base_op)
-        func = base_op == 'divs' ? 'div_s' : (base_op == 'divu' ? 'div_u' : base_op)
-        func = "#{func}_#{out_width}"
-        emit("#{out} = #{func}(#{inputs[0]}, #{inputs[1]}, #{inputs[2]});")
-        return
-      end
-
-      case base_op
-      when 'select'
-        emit("#{out} = #{inputs[0]} ? #{inputs[1]} : #{inputs[2]};")
-      when 'extract_low'
-        emit("#{out} = extract_low_#{out_width}(#{inputs[0]});")
-      when 'extend_sign', 'extend_zero'
-        in_width = @var_widths[inputs[0]] || 1
-        func = "#{base_op}_#{in_width}_#{out_width}"
-        emit("#{out} = #{func}(#{inputs[0]});")
-      else
-        if out_width == 1 && ['eq','ne','slt','sle','sgt','sge','ult','ule','ugt','uge'].include?(base_op)
-          a, b = inputs
-          func = "#{base_op}_32"
-          emit("#{out} = #{func}(#{a}, #{b});")
-          return
-        end
-
-        func_name = base_op
-        if base_op == 'rem'
-          func_name = 'rem_s'
-        elsif base_op == 'rems'
-          func_name = 'rem_s'
-        elsif base_op == 'remu'
-          func_name = 'rem_u'
-        end
-        func = "#{func_name}_#{out_width}"
-        if inputs.size == 1
-          emit("#{out} = #{func}(#{inputs[0]});")
-        elsif inputs.size == 2
-          emit("#{out} = #{func}(#{inputs[0]}, #{inputs[1]});")
-        else
-          raise "Unsupported arity for #{base_op} (#{inputs.size} args)"
-        end
-      end
-    end
-
-    def translate_const(stmt)
-      value = stmt.specifier
-      out = stmt.outputs[0]
-      width = stmt.outputs_types[0]
-      unless @var_widths.key?(out)
-        emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{value};")
-        @var_widths[out] = width
-      end
-    end
-
-    def translate_dyn_const(stmt)
-      name = stmt.specifier
-      out = stmt.outputs[0]
-      width = stmt.outputs_types[0]
-      unless @var_widths.key?(out)
-        emit("#{Utility::HelperCpp.gen_type(width)} #{out} = #{name};")
-        @var_widths[out] = width
-      end
-    end
-
-    def translate_read(stmt)
-      rf = stmt.specifier
-      idx = resolve_var(stmt.inputs[0], stmt)
-      out = stmt.outputs[0]
-      width = stmt.outputs_types[0]
-      unless @var_widths.key?(out)
-        emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
-        @var_widths[out] = width
-      end
-      if @context == :execute
-        emit("#{out} = cpu.get#{rf}<#{Utility::HelperCpp.gen_type(width)}>(#{idx});")
-      else
-        emit("#{out} = 0; // read in decode")
-      end
-    end
-
-    def translate_write(stmt)
-      rf = stmt.specifier
-      idx = resolve_var(stmt.inputs[0], stmt)
-      val = resolve_var(stmt.inputs[1], stmt)
-      if @context == :execute
-        emit("cpu.set#{rf}(#{idx}, #{val});")
-      end
-    end
-
-
-    def translate_env(stmt)
-      func = stmt.specifier
-      inputs = stmt.inputs.map { |i| resolve_var(i, stmt) }
-      outputs = stmt.outputs
-      out_types = stmt.outputs_types
-
-      if func == 'readMem' && out_types.size == 1
-        func = "readMem#{out_types[0]}"
-      elsif func == 'writeMem' && inputs.size == 2
-        val_name = stmt.inputs[1]
-        width = @var_widths[val_name] || 32
-        func = "writeMem#{width}"
-      end
-
-      if @context == :execute
-        if outputs.empty?
-          emit("cpu.#{func}(#{inputs.join(', ')});")
-        else
-          if outputs.size == 1
-            out = outputs[0]
-            width = out_types[0]
-            unless @var_widths.key?(out)
-              emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
-              @var_widths[out] = width
-            end
-            emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
-          else
-            outputs.each_with_index do |out, i|
-              width = out_types[i]
-              unless @var_widths.key?(out)
-                emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
-                @var_widths[out] = width
-              end
-            end
-            emit("std::tie(#{outputs.join(', ')}) = cpu.#{func}(#{inputs.join(', ')});")
-          end
-        end
-      end
-    end
-
-    def translate_cond_env(stmt)
-      cond = resolve_var(stmt.inputs[0], stmt)
-      inputs = stmt.inputs[1...-stmt.outputs.size].map { |i| resolve_var(i, stmt) }
-      on_false = stmt.inputs[-stmt.outputs.size..-1].map { |i| resolve_var(i, stmt) }
-      func = stmt.specifier
-      outputs = stmt.outputs
-      emit("if (#{cond}) {")
-      indent do
-        outputs.each_with_index do |out, i|
-          width = stmt.outputs_types[i]
-          unless @var_widths.key?(out)
-            emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
-            @var_widths[out] = width
-          end
-          emit("#{out} = cpu.#{func}(#{inputs.join(', ')});")
-        end
-      end
-      emit("} else {")
-      indent do
-        outputs.each_with_index do |out, i|
-          emit("#{out} = #{on_false[i]};")
-        end
-      end
-      emit("}")
-    end
-
-    def translate_input(stmt)
-      idx = stmt.specifier.to_i
-      out = stmt.outputs[0]
-      width = stmt.outputs_types[0]
-      unless @var_widths.key?(out)
-        emit("#{Utility::HelperCpp.gen_type(width)} #{out};")
-        @var_widths[out] = width
-      end
-      if @context == :decode
-        emit("#{out} = raw_insn;")
-      else
-        emit("#{out} = insn.operand#{idx};")
-      end
-    end
-
-    def translate_output(stmt)
-      val = resolve_var(stmt.inputs[0], stmt)
-      idx = stmt.specifier.to_i
-      emit("insn.operand#{idx} = #{val};")
-    end
-
     def emit(line)
-      @output << (" " * @indent + line)
+      @output << (' ' * @indent + line)
     end
 
     def indent
       @indent += 2
       yield
       @indent -= 2
+    end
+
+    private
+
+    def translate_stmt(stmt)
+      emitter_class = EMITTER_MAP[stmt.kind] or raise "Unknown statement kind: #{stmt.kind}"
+      @current_stmt = stmt
+      emitter_class.new(self).emit_code
     end
   end
 end

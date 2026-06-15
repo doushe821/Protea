@@ -1,5 +1,5 @@
 require 'stringio'
-require_relative '../lib/lira/ir_ops'
+require_relative 'cpp_ops'
 
 module SimGen
   def self.generate_base_ops
