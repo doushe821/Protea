@@ -34,16 +34,24 @@ module SimGen
 
         body = []
         instructions.each do |insn|
-          mask = insn[:encoding][:const_mask]
-          const_part = insn[:encoding][:const_part]
           decode_snippets = insn[:encoding][:decode_snippets]
+          constraint_name = insn[:encoding][:constraint_decode]
+
+          next unless constraint_name
+          constraint_seq = snippets[constraint_name]
+          next unless constraint_seq
+
+          constraint_t = LiraCppGen::Translator.new(constraint_seq, :decode, 2)
+          constraint_code = constraint_t.translate
 
           if decode_snippets.nil? || decode_snippets.empty?
-            # Инструкция без полей (например, fence, ecall, ebreak)
             body << <<~CPP
-              if ((raw_insn & #{mask}) == #{const_part}) {
-                insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
-                return insn;
+              {
+                #{constraint_code}
+                if (insn.operand0) {
+                  insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+                  return insn;
+                }
               }
             CPP
           else
@@ -55,10 +63,13 @@ module SimGen
             snippet_code = translator.translate
 
             body << <<~CPP
-              if ((raw_insn & #{mask}) == #{const_part}) {
-                #{snippet_code}
-                insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
-                return insn;
+              {
+                #{constraint_code}
+                if (insn.operand0) {
+                  #{snippet_code}
+                  insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+                  return insn;
+                }
               }
             CPP
           end

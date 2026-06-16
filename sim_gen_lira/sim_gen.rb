@@ -44,7 +44,8 @@ ir_hash = {
         const_part: insn.encoding.const_encoding_part,
         encoded_size: insn.encoding.encoded_size,
         const_mask: insn.encoding.const_mask,
-        decode_snippets: insn.encoding.decode
+        decode_snippets: insn.encoding.decode,
+        constraint_decode: insn.encoding.constraint_decode
       },
       semantic_seq: insn.semantic
     }
