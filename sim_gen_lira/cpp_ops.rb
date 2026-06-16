@@ -4,7 +4,7 @@ require_relative '../lib/Utility/helper_cpp'
 module Lira
   module CppCodegen
     def cpp_func_name
-      generate_name
+      name
     end
 
     def cpp_return_type
@@ -42,9 +42,12 @@ module Lira
       when 'asr'          then asr_body
       when 'div_u'        then 'return (b == 0) ? c : a / b;'
       when 'div_s'        then div_s_body
-      when 'select'       then 'return cond ? a : b;'
+      when 'select'       then 'return a ? b : c;'
       when 'rem_u'        then rem_u_body
       when 'rem_s'        then rem_s_body
+      when 'extend_sign'  then extend_sign_body
+      when 'extend_zero'  then extend_zero_body
+      when 'extract_low'  then extract_low_body
       else raise "No cpp_body defined for operation #{semantic_base}"
       end
     end
@@ -93,8 +96,32 @@ module Lira
       return (#{t})res;
       CPP
     end
+
+    def extend_sign_body
+      return 'return a;' if inputs[0] == 1
+      t = Utility::HelperCpp.gen_type(outputs[0])
+      <<~CPP
+      #{t} val = a & (((#{t})1 << #{inputs[0]}) - 1);
+      #{t} sign = (val >> (#{inputs[0]} - 1)) & 1;
+      if (sign)
+        return val | (~(((#{t})1 << #{inputs[0]}) - 1));
+      else
+        return val;
+      CPP
+    end
+
+    def extend_zero_body
+      t = Utility::HelperCpp.gen_type(outputs[0])
+      "return a & (((#{t})1 << #{inputs[0]}) - 1);"
+    end
+
+    def extract_low_body
+      t = Utility::HelperCpp.gen_type(inputs[0])
+      "return a & (((#{t})1 << #{outputs[0]}) - 1);"
+    end
   end
 
+  class Operation;    include CppCodegen; end
   class UnaryOp;      include CppCodegen; end
   class BinaryOp;     include CppCodegen; end
   class CmpOp;        include CppCodegen; end

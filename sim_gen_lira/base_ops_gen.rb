@@ -29,13 +29,8 @@ CPP
 
     def generate_file(out, operations)
       out.puts HEADER
-
-      operations.each do |op|
-        instance = Lira.lookup_operation(op.name) || op
-        out.puts instance.to_cpp
-      end
+      operations.each { |op| out.puts op.to_cpp }
       out.puts
-
       out.puts FOOTER
     end
   end

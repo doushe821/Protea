@@ -372,6 +372,10 @@ module Lira
       self
     end
 
+    def operations_map
+      @op_cache.each_value.to_h { |op| [op.name, op] }
+    end
+
     private
 
     def check_width_match(a, b)
@@ -426,6 +430,8 @@ module Lira
     def output(value, idx) = @seq.output(value, idx)
     def op(operation, inputs) = @seq.op(operation, inputs)
     def op_multi(operation, inputs) = @seq.op_multi(operation, inputs)
+    def operations_map = @seq.operations_map
+    def get_or_create_op(op_class, *args) = @seq.get_or_create_op(op_class, *args)
   end
 
   class SnippetBuilder < BaseBuilder

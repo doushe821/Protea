@@ -17,6 +17,9 @@ require_relative '../lib/lira/arch_ser_yaml'
 
 arch = Lira::ArchSerYaml.read_arch(ARGV[0])
 
+ops_map = arch.operations.to_h { |op| [op.name, op] }
+LiraCppGen::OpRegistry.ops = ops_map
+
 ir_hash = {
   isa_name: arch.name,
   regfiles: arch.register_files.map do |rf|

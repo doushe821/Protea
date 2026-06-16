@@ -6,8 +6,14 @@ require_relative '../lib/Utility/helper_cpp'
 
 module LiraCppGen
   module OpRegistry
+    @ops = {}
+
+    def self.ops=(map)
+      @ops = map
+    end
+
     def self.lookup(name)
-      Lira.lookup_operation(name) or raise "Unknown operation: #{name}"
+      @ops[name] or raise "Unknown operation: #{name}"
     end
   end
 

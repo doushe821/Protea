@@ -357,7 +357,7 @@ class LiraSerializer
     @encode_snip_id = 0
     @constraint_cache = {}
     @constraint_snip_id = 0
-    @ops_used = Set.new
+    @ops_used = {}
   end
 
   def resolved(op)
@@ -375,8 +375,9 @@ class LiraSerializer
     w = [a.width, b.width].max
     a = @builder.ensure_width(a, w)
     b = @builder.ensure_width(b, w)
+    op = @builder.get_or_create_op(op_class, w)
     out = @builder.seq.new_temp(w)
-    @builder.seq.add_op(op_class.new(w), [a.name, b.name], [out.name])
+    @builder.seq.add_op(op, [a.name, b.name], [out.name])
     out
   end
 
@@ -386,8 +387,9 @@ class LiraSerializer
     w = [a.width, b.width].max
     a = @builder.ensure_width(a, w)
     b = @builder.ensure_width(b, w)
+    op = @builder.get_or_create_op(op_class, w)
     out = @builder.seq.new_temp(1)
-    @builder.seq.add_op(op_class.new(w), [a.name, b.name], [out.name])
+    @builder.seq.add_op(op, [a.name, b.name], [out.name])
     out
   end
 
@@ -404,8 +406,8 @@ class LiraSerializer
     end
   end
 
-  def collect_ops(seq)
-    seq.stmts.each { |s| @ops_used << s.specifier if s.kind == 'op' }
+  def collect_ops(_seq)
+    @builder.operations_map.each { |name, op| @ops_used[name] = op }
   end
 
   def stmt_to_lira(stmt)
@@ -624,9 +626,8 @@ class LiraSerializer
       end
     end
 
-    @ops_used.each do |op_name|
-      op = Lira.lookup_operation(op_name)
-      @arch_builder.add_operation(op) if op
+    @ops_used.each_value do |op|
+      @arch_builder.add_operation(op)
     end
 
     @arch_builder.build
