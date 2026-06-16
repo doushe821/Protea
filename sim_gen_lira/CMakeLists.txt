@@ -19,7 +19,6 @@ set(PROTEA_SIMGEN_OUTPUT_HEADERS
 
 set(PROTEA_SIMGEN_OUTPUT_SOURCES
   base_exec_engine.cc
-  cpu_state.cc
   naive_interpreter.cc
   decoder.cc
   hart.cc

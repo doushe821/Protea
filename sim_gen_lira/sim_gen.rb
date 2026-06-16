@@ -19,7 +19,6 @@ arch = Lira::ArchSerYaml.read_arch(ARGV[0])
 LiraCppGen::OpRegistry.ops = arch.operations.to_h { |op| [op.name, op] }
 
 File.write('cpu_state.hh',  SimGen::CPUState::Header.generate_cpu_state(arch))
-File.write('cpu_state.cc',  SimGen::CPUState::TranslationUnit.generate_cpu_state(arch))
 File.write('base_exec_engine.hh', SimGen::BaseExecEngine::Header.generate_base_exec_engine(arch))
 File.write('base_exec_engine.cc', SimGen::BaseExecEngine::TranslationUnit.generate_base_exec_engine(arch))
 File.write('naive_interpreter.hh', SimGen::NaiveInterpreter::Header.generate_naive_interpreter(arch))
