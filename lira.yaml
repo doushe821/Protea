@@ -129,7 +129,623 @@
   - 32
   :outputs: []
 :tables_int: []
-:operations: []
+:operations:
+- :name: lsr_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: lsr
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_5
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 5
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_5_to_32
+  :attributes: []
+  :inputs:
+  - 5
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_20
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 20
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_20_to_32
+  :attributes: []
+  :inputs:
+  - 20
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: lsl_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: lsl
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: add_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: add
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: sub_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: sub
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: slt_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: slt
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_1_to_32
+  :attributes: []
+  :inputs:
+  - 1
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: ult_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: ult
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: xor_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: xor
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: asr_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: asr
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: orr_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: orr
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: and_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: and
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_12
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 12
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_12_to_32
+  :attributes: []
+  :inputs:
+  - 12
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_5_to_32
+  :attributes: []
+  :inputs:
+  - 5
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: eq_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: eq
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: select_32
+  :attributes: []
+  :inputs:
+  - 1
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: select
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_1
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_1_to_13
+  :attributes: []
+  :inputs:
+  - 1
+  :outputs:
+  - 13
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_13_to_32
+  :attributes: []
+  :inputs:
+  - 13
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_6
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 6
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_6_to_13
+  :attributes: []
+  :inputs:
+  - 6
+  :outputs:
+  - 13
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_4
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 4
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_4_to_13
+  :attributes: []
+  :inputs:
+  - 4
+  :outputs:
+  - 13
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_13
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 13
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_13_to_32
+  :attributes: []
+  :inputs:
+  - 13
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: ne_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: ne
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: sge_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: sge
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: uge_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 1
+  :semantic_base: uge
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_1_to_21
+  :attributes: []
+  :inputs:
+  - 1
+  :outputs:
+  - 21
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_21_to_32
+  :attributes: []
+  :inputs:
+  - 21
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_8
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 8
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_8_to_21
+  :attributes: []
+  :inputs:
+  - 8
+  :outputs:
+  - 21
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_10
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 10
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_10_to_21
+  :attributes: []
+  :inputs:
+  - 10
+  :outputs:
+  - 21
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_21
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 21
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_21_to_32
+  :attributes: []
+  :inputs:
+  - 21
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_7
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 7
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_7_to_12
+  :attributes: []
+  :inputs:
+  - 7
+  :outputs:
+  - 12
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_12_to_32
+  :attributes: []
+  :inputs:
+  - 12
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_5_to_12
+  :attributes: []
+  :inputs:
+  - 5
+  :outputs:
+  - 12
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extract_low_32_to_16
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 16
+  :semantic_base: extract_low
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_8_to_32
+  :attributes: []
+  :inputs:
+  - 8
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_16_to_32
+  :attributes: []
+  :inputs:
+  - 16
+  :outputs:
+  - 32
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_8_to_32
+  :attributes: []
+  :inputs:
+  - 8
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_16_to_32
+  :attributes: []
+  :inputs:
+  - 16
+  :outputs:
+  - 32
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: mul_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: mul
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_sign_32_to_64
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 64
+  :semantic_base: extend_sign
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: mul_64
+  :attributes: []
+  :inputs:
+  - 64
+  - 64
+  :outputs:
+  - 64
+  :semantic_base: mul
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: extend_zero_32_to_64
+  :attributes: []
+  :inputs:
+  - 32
+  :outputs:
+  - 64
+  :semantic_base: extend_zero
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: asr_64
+  :attributes: []
+  :inputs:
+  - 64
+  - 64
+  :outputs:
+  - 64
+  :semantic_base: asr
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: lsr_64
+  :attributes: []
+  :inputs:
+  - 64
+  - 64
+  :outputs:
+  - 64
+  :semantic_base: lsr
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: div_s_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: div_s
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: div_u_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: div_u
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: rem_s_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: rem_s
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
+- :name: rem_u_32
+  :attributes: []
+  :inputs:
+  - 32
+  - 32
+  :outputs:
+  - 32
+  :semantic_base: rem_u
+  :semantic_func: {}
+  :semantic_func_128: {}
+  :semantic_table: {}
 :snippets:
 - :name: decode_0
   :seq: |
