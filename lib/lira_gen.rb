@@ -430,36 +430,43 @@ class LiraSerializer
 
   def generate_decode_snippets(instr, operand_vars)
     decode_snippet_names = []
-    @builder = Lira::SnippetBuilder.new('temp_decode')
-    @vars = {}
     @current_instr = instr
-    @raw_enc = @builder.input(0, 32)
+    return [] if instr.operand_map.nil? || instr.operand_map.empty?
 
-    instr.map.tree.each do |stmt|
-      handler_class = DECODE_HANDLER_MAP[stmt.name]
-      next unless handler_class
-      handler_class.new(self).handle(stmt)
+    instr.operand_list.each do |op_name|
+      op_scope = instr.operand_map[op_name]
+      next unless op_scope
+
+      @builder = Lira::SnippetBuilder.new('temp_operand')
+      @vars = {}
+      @raw_enc = @builder.input(0, 32)
+
+      op_scope.tree.each do |stmt|
+        handler_class = DECODE_HANDLER_MAP[stmt.name]
+        next unless handler_class
+        handler_class.new(self).handle(stmt)
+      end
+
+      val = @vars[op_scope.vars[op_name]]
+      @builder.output(val || @builder.const(0, 32), 0)
+
+      snippet = @builder.build
+      collect_ops(snippet.seq)
+      seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
+
+      snip_name = if @decode_cache.key?(seq_str)
+                    @decode_cache[seq_str]
+                  else
+                    unique_name = "decode_#{@decode_snip_id}"
+                    snippet.name = unique_name
+                    @arch_builder.add_snippet(snippet)
+                    @decode_snip_id += 1
+                    @decode_cache[seq_str] = unique_name
+                    unique_name
+                  end
+      decode_snippet_names << snip_name
     end
 
-    operand_vars.each_with_index do |var, idx|
-      val = @vars[var]
-      @builder.output(val || @builder.const(0, 32), idx)
-    end
-
-    snippet = @builder.build
-    collect_ops(snippet.seq)
-    seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
-
-    if @decode_cache.key?(seq_str)
-      decode_snippet_names << @decode_cache[seq_str]
-    else
-      unique_name = "decode_#{@decode_snip_id}"
-      snippet.name = unique_name
-      @arch_builder.add_snippet(snippet)
-      @decode_snip_id += 1
-      @decode_cache[seq_str] = unique_name
-      decode_snippet_names << unique_name
-    end
     decode_snippet_names
   ensure
     @current_instr = nil
@@ -539,15 +546,9 @@ class LiraSerializer
   end
 
   def collect_operand_vars(instr)
-    operand_vars = []
-    instr.map.tree.each do |stmt|
-      if stmt.name == :new_var
-        var = stmt.oprnds[0]
-        attrs = stmt.attrs
-        operand_vars << var if attrs && attrs.include?(:op)
-      end
-    end
-    operand_vars
+    return [] if instr.operand_map.nil? || instr.operand_map.empty?
+
+    instr.operand_list.map { |name| instr.operand_map[name].vars[name] }.compact
   end
 
   def collect_operand_names(instr)
