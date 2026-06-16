@@ -6,10 +6,10 @@ module SimGen
     module Header
       module_function
 
-      def generate_decoder(ir_hash)
+      def generate_decoder(arch)
         <<~CPP
-          #ifndef GENERATED_#{ir_hash[:isa_name].upcase}_DECODER_HH_INCLUDED
-          #define GENERATED_#{ir_hash[:isa_name].upcase}_DECODER_HH_INCLUDED
+          #ifndef GENERATED_#{arch.name.upcase}_DECODER_HH_INCLUDED
+          #define GENERATED_#{arch.name.upcase}_DECODER_HH_INCLUDED
 
           #include "isa.hh"
           #include <optional>
@@ -28,14 +28,13 @@ module SimGen
     module TranslationUnit
       module_function
 
-      def generate_decoder(ir_hash)
-        instructions = ir_hash[:instructions]
-        snippets = ir_hash[:snippets].to_h { |s| [s[:name], s[:seq]] }
+      def generate_decoder(arch)
+        snippets = arch.snippets.to_h { |s| [s.name, s.seq] }
 
         body = []
-        instructions.each do |insn|
-          constraint_name = insn[:encoding][:constraint_decode]
-          decode_names = insn[:encoding][:decode_snippets]
+        arch.instructions.each do |insn|
+          constraint_name = insn.encoding.constraint_decode
+          decode_names = insn.encoding.decode
 
           next unless constraint_name && decode_names
           constraint_seq = snippets[constraint_name]
@@ -48,7 +47,7 @@ module SimGen
           body << <<~CPP
             if (#{constraint_name}(raw_insn)) {
               #{operand_calls}
-              insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+              insn.m_opc = Opcode::k#{insn.name.to_s.upcase};
               return insn;
             }
           CPP

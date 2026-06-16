@@ -5,10 +5,10 @@ module SimGen
     module Header
       module_function
 
-      def generate_base_exec_engine(input_ir)
+      def generate_base_exec_engine(arch)
 <<~CPP
-#ifndef GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
-#define GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
+#ifndef GENERATED_#{arch.name.upcase}_EXEC_ENGINE_HH_INCLUDED
+#define GENERATED_#{arch.name.upcase}_EXEC_ENGINE_HH_INCLUDED
 
 #include \"cpu_state.hh\"
 #include \"isa.hh\"
@@ -26,7 +26,7 @@ struct ExecEngine {
 };
 } // namespace prot::engine
 
-#endif // GENERATED_#{input_ir[:isa_name].upcase}_EXEC_ENGINE_HH_INCLUDED
+#endif // GENERATED_#{arch.name.upcase}_EXEC_ENGINE_HH_INCLUDED
 CPP
       end
     end
@@ -34,8 +34,7 @@ CPP
     module TranslationUnit
       module_function
 
-      def generate_base_exec_engine(input_ir)
-        max_xlen = SimGen::Helper::find_max_regsize(input_ir[:regfiles])
+      def generate_base_exec_engine(arch)
 <<~CPP
 #include "base_exec_engine.hh"
 #include "memory.hh"

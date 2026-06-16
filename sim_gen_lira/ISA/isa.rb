@@ -6,8 +6,8 @@ module SimGen
       def find_max_regsize(regfiles)
         max = 0
         regfiles.each do |rf|
-          rf[:regs].each do |reg|
-            max = reg[:size] if reg[:size] > max
+          rf.regs.each do |reg|
+            max = rf.reg_size.lanes_base if rf.reg_size.lanes_base > max
           end
         end
         max
@@ -17,9 +17,9 @@ module SimGen
         max_operands = 0
         max_size = 0
         instructions.each do |insn|
-          size = insn[:operand_sizes].size
+          size = insn.operand_sizes.size
           max_operands = size if size > max_operands
-          insn[:operand_sizes].each do |s|
+          insn.operand_sizes.each do |s|
             max_size = s if s > max_size
           end
         end
@@ -47,7 +47,7 @@ module SimGen
       end
 
       def is_terminator_instruction(insn)
-        seq = insn[:semantic_seq]
+        seq = insn.semantic
         return false unless seq && seq.stmts
         seq.stmts.any? do |stmt|
           stmt.kind == 'env' && (stmt.specifier == 'setPC' || stmt.specifier == 'sysCall')
@@ -62,7 +62,7 @@ module SimGen
         emitter.increase_indent
         instructions.each do |insn|
           if is_terminator_instruction(insn)
-            emitter.emit_line("case Opcode::k#{insn[:name].to_s.upcase}: return true;")
+            emitter.emit_line("case Opcode::k#{insn.name.to_s.upcase}: return true;")
           end
         end
         emitter.emit_line("default: return false;")
@@ -73,17 +73,13 @@ module SimGen
         emitter
       end
 
-      # Получает тип адреса из инструкций (по первому операнду readMem/writeMem)
       def get_addr_type_from_instructions(instructions)
         instructions.each do |insn|
-          seq = insn[:semantic_seq]
+          seq = insn.semantic
           next unless seq && seq.stmts
           seq.stmts.each do |stmt|
             if stmt.kind == 'env' && (stmt.specifier == 'readMem' || stmt.specifier == 'writeMem')
-              # Первый вход — адрес, его тип
               addr_input = stmt.inputs[0]
-              # Узнать ширину по переменной (можно из @var_widths, но здесь нет контекста)
-              # Заглушка: вернём 32, так как в RISC-V адрес 32-битный
               return 32
             end
           end
@@ -95,10 +91,10 @@ module SimGen
     module Header
       module_function
 
-      def generate_isa_header(ir_hash)
-        isa_name = ir_hash[:isa_name]
-        regfiles = ir_hash[:regfiles]
-        instructions = ir_hash[:instructions]
+      def generate_isa_header(arch)
+        isa_name = arch.name
+        regfiles = arch.register_files
+        instructions = arch.instructions
 
         max_xlen = Helper.find_max_regsize(regfiles)
         addr_width = Helper.get_addr_type_from_instructions(instructions)
@@ -110,14 +106,14 @@ module SimGen
                     else "uint32_t"
                     end
 
-        opcode_enum = instructions.map { |insn| "  k#{insn[:name].to_s.upcase}," }.join("\n")
+        opcode_enum = instructions.map { |insn| "  k#{insn.name.to_s.upcase}," }.join("\n")
         instruction_struct = Helper.generate_instruction_struct(instructions)
         is_terminator_function = Helper.generate_is_terminator_function(instructions)
 
         get_ilen_lines = instructions.map do |insn|
-        enc_size = insn[:encoding][:encoded_size] || 32  # защита от nil
+        enc_size = insn.encoding.encoded_size || 32
         len = enc_size / 8
-        "case Opcode::k#{insn[:name].to_s.upcase}: return #{len};"
+        "case Opcode::k#{insn.name.to_s.upcase}: return #{len};"
         end.join("\n    ")
 
         <<~CPP

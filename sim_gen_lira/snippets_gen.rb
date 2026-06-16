@@ -6,8 +6,8 @@ module SimGen
 
     def generate_snippets_header(snippets)
       funcs = snippets
-        .select { |s| s[:name].start_with?('decode_') || s[:name].start_with?('constraint_') }
-        .map { |snip| generate_function(snip[:name], snip[:seq]) }
+        .select { |s| s.name.start_with?('decode_') || s.name.start_with?('constraint_') }
+        .map { |snip| generate_function(snip.name, snip.seq) }
 
       <<~CPP
         #ifndef GENERATED_SNIPPETS_H

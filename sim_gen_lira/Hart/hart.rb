@@ -5,7 +5,7 @@ module SimGen
 
       def get_addr_type(instructions)
         instructions.each do |insn|
-          seq = insn[:semantic_seq]
+          seq = insn.semantic
           next unless seq && seq.stmts
           seq.stmts.each do |stmt|
             if stmt.kind == 'env' && (stmt.specifier == 'writeMem' || stmt.specifier == 'readMem')
@@ -16,13 +16,13 @@ module SimGen
         32
       end
 
-      def generate_hart(ir_hash)
-        type = get_addr_type(ir_hash[:instructions])
+      def generate_hart(arch)
+        type = get_addr_type(arch.instructions)
         type_str = Utility::HelperCpp.gen_type(type)
 
         <<~CPP
-          #ifndef GENERATED_#{ir_hash[:isa_name].upcase}_HART_HH_INCLUDED
-          #define GENERATED_#{ir_hash[:isa_name].upcase}_HART_HH_INCLUDED
+          #ifndef GENERATED_#{arch.name.upcase}_HART_HH_INCLUDED
+          #define GENERATED_#{arch.name.upcase}_HART_HH_INCLUDED
 
           #include <memory>
 
@@ -74,7 +74,7 @@ module SimGen
 
       def get_addr_type(instructions)
         instructions.each do |insn|
-          seq = insn[:semantic_seq]
+          seq = insn.semantic
           next unless seq && seq.stmts
           seq.stmts.each do |stmt|
             if stmt.kind == 'env' && (stmt.specifier == 'writeMem' || stmt.specifier == 'readMem')
@@ -85,8 +85,8 @@ module SimGen
         32
       end
 
-      def generate_hart(ir_hash)
-        type = get_addr_type(ir_hash[:instructions])
+      def generate_hart(arch)
+        type = get_addr_type(arch.instructions)
         type_str = Utility::HelperCpp.gen_type(type)
 
         <<~CPP

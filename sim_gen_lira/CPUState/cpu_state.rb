@@ -24,9 +24,9 @@ module SimGen
       end
 
       def find_pc_reg(regfiles)
-        regfiles.each do |regfile|
-          regfile[:regs].each do |reg|
-            return reg if reg[:attrs].include? :pc
+        regfiles.each do |rf|
+          rf.regs.each do |reg|
+            return [reg, rf] if reg.attributes.any? { |a| a.to_s == 'pc' }
           end
         end
         raise 'PC register not found in the register files'
@@ -34,9 +34,9 @@ module SimGen
 
       def generate_pc_decl(regfiles)
         emitter = Utility::GenEmitter.new
-        pc_reg = find_pc_reg(regfiles)
+        pc_reg, = find_pc_reg(regfiles)
         emitter.emit_line('// Program Counter')
-        emitter.emit_line("#{Utility::HelperCpp.gen_type(pc_reg[:size])} m_pc;")
+        emitter.emit_line("#{Utility::HelperCpp.gen_type(regfiles[0].reg_size.lanes_base)} m_pc;")
         emitter.emit_blank_line
         emitter.increase_indent_all(2)
         emitter
@@ -44,16 +44,17 @@ module SimGen
 
       def generate_pc_functions(regfiles)
         emitter = Utility::GenEmitter.new
-        pc_reg = find_pc_reg(regfiles)
+        pc_reg, = find_pc_reg(regfiles)
+        pc_type = Utility::HelperCpp.gen_type(regfiles[0].reg_size.lanes_base)
         emitter.emit_line('// Set PC function')
-        emitter.emit_line("void setPC(const #{Utility::HelperCpp.gen_type(pc_reg[:size])} value) {")
+        emitter.emit_line("void setPC(const #{pc_type} value) {")
         emitter.increase_indent
         emitter.emit_line('m_pc = value;')
         emitter.decrease_indent
         emitter.emit_line('}')
         emitter.emit_blank_line
         emitter.emit_line('// Read PC function')
-        emitter.emit_line("#{Utility::HelperCpp.gen_type(pc_reg[:size])} getPC() const {")
+        emitter.emit_line("#{pc_type} getPC() const {")
         emitter.increase_indent
         emitter.emit_line('return m_pc;')
         emitter.decrease_indent
@@ -65,11 +66,12 @@ module SimGen
 
       def generate_cpu_regsets(regfiles)
         emitter = Utility::GenEmitter.new
-        regfiles.each do |regfile|
-          regfile_size = regfile[:regs].size - regfile[:regs].count { |reg| reg[:attrs].include? :pc }
-          emitter.emit_line("// Register file: #{regfile[:name]}")
-          regsize = regfile[:regs][0][:size]
-          array_str = "std::array<#{Utility::HelperCpp.gen_type(regsize)}, #{regfile_size}> m_#{regfile[:name]}{};"
+        regfiles.each do |rf|
+          pc_count = rf.regs.count { |r| r.attributes.any? { |a| a.to_s == 'pc' } }
+          rf_size = rf.regs.size - pc_count
+          emitter.emit_line("// Register file: #{rf.name}")
+          regsize = rf.reg_size.lanes_base
+          array_str = "std::array<#{Utility::HelperCpp.gen_type(regsize)}, #{rf_size}> m_#{rf.name}{};"
           emitter.emit_line(array_str)
           emitter.emit_blank_line
         end
@@ -77,23 +79,23 @@ module SimGen
         emitter
       end
 
-      def generate_if_zero_reg_check(emitter, regfile)
-        regfile[:regs].each_with_index do |reg, reg_index|
-          if reg[:attrs].include? :zero
-            emitter.emit_line("if (reg == #{reg_index}) return; // #{reg[:name]} is zero register")
+      def generate_if_zero_reg_check(emitter, rf)
+        rf.regs.each_with_index do |reg, reg_index|
+            if reg.attributes.any? { |a| a.to_s == 'zero' }
+            emitter.emit_line("if (reg == #{reg_index}) return; // #{reg.name} is zero register")
           end
         end
       end
 
       def generate_set_reg_functions(regfiles)
         emitter = Utility::GenEmitter.new
-        regfiles.each do |regfile|
-          emitter.emit_line("// Set register function for #{regfile[:name]}")
+        regfiles.each do |rf|
+          emitter.emit_line("// Set register function for #{rf.name}")
           emitter.emit_line('template<std::integral T>')
-          emitter.emit_line("void set#{regfile[:name]}(const std::size_t reg, const T value) {")
+          emitter.emit_line("void set#{rf.name}(const std::size_t reg, const T value) {")
           emitter.increase_indent
-          generate_if_zero_reg_check(emitter, regfile)
-          emitter.emit_line("m_#{regfile[:name]}[reg] = value;")
+          generate_if_zero_reg_check(emitter, rf)
+          emitter.emit_line("m_#{rf.name}[reg] = value;")
           emitter.decrease_indent
           emitter.emit_line('}')
           emitter.emit_blank_line
@@ -104,12 +106,12 @@ module SimGen
 
       def generate_read_reg_functions(regfiles)
         emitter = Utility::GenEmitter.new
-        regfiles.each do |regfile|
-          emitter.emit_line("// Read register function for #{regfile[:name]}")
+        regfiles.each do |rf|
+          emitter.emit_line("// Read register function for #{rf.name}")
           emitter.emit_line('template<std::integral T>')
-          emitter.emit_line("T get#{regfile[:name]}(const std::size_t reg) const {")
+          emitter.emit_line("T get#{rf.name}(const std::size_t reg) const {")
           emitter.increase_indent
-          emitter.emit_line("return static_cast<T>(m_#{regfile[:name]}[reg]);")
+          emitter.emit_line("return static_cast<T>(m_#{rf.name}[reg]);")
           emitter.decrease_indent
           emitter.emit_line('}')
           emitter.emit_blank_line
@@ -165,19 +167,23 @@ module SimGen
     module Header
       module_function
 
-      def generate_cpu_state(input_ir)
-        pc_decl = Helper.generate_pc_decl(input_ir[:regfiles])
-        pc_functions = Helper.generate_pc_functions(input_ir[:regfiles])
-        regsets_decl = Helper.generate_cpu_regsets(input_ir[:regfiles])
-        setreg_funcs = Helper.generate_set_reg_functions(input_ir[:regfiles])
-        readreg_funcs = Helper.generate_read_reg_functions(input_ir[:regfiles])
+      def generate_cpu_state(arch)
+        regfiles = arch.register_files
+        pc_decl = Helper.generate_pc_decl(regfiles)
+        pc_functions = Helper.generate_pc_functions(regfiles)
+        regsets_decl = Helper.generate_cpu_regsets(regfiles)
+        setreg_funcs = Helper.generate_set_reg_functions(regfiles)
+        readreg_funcs = Helper.generate_read_reg_functions(regfiles)
         do_exit_func = Helper.generate_do_exit_func
         increase_icount_func = Helper.increase_icount_func
-        interface_func = Helper.generate_interface_func(input_ir[:interface_functions])
+        iface = arch.environment_functions.reject { |ef| %w[setPC getPC].include?(ef.name) }
+        iface_hashes = iface.map { |ef| { name: ef.name, argument_types: ef.inputs, return_types: ef.outputs } }
+        interface_func = Helper.generate_interface_func(iface_hashes)
 
-        base_type = Utility::HelperCpp.gen_type input_ir[:regfiles][0][:regs][0][:size]
-"#ifndef GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
-#define GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
+        base_type = Utility::HelperCpp.gen_type regfiles[0].reg_size.lanes_base
+        isa_name = arch.name
+"#ifndef GENERATED_#{isa_name.upcase}_CPUSTATE_HH_INCLUDED
+#define GENERATED_#{isa_name.upcase}_CPUSTATE_HH_INCLUDED
 
 #include \"memory.hh\"
 
@@ -223,7 +229,7 @@ public:
 
 } // prot::state
 
-#endif // GENERATED_#{input_ir[:isa_name].upcase}_CPUSTATE_HH_INCLUDED
+#endif // GENERATED_#{isa_name.upcase}_CPUSTATE_HH_INCLUDED
 "
       end
     end
@@ -231,7 +237,7 @@ public:
     module TranslationUnit
       module_function
 
-      def generate_cpu_state(input_ir)
+      def generate_cpu_state(arch)
         # Currently, no implementation is needed for the CPUState translation unit.
         ''
       end

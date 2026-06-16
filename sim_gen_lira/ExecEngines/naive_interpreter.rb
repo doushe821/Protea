@@ -5,10 +5,10 @@ module SimGen
     module Header
       module_function
 
-      def generate_naive_interpreter(ir_hash)
+      def generate_naive_interpreter(arch)
 <<~CPP
-  #ifndef GENERATED_#{ir_hash[:isa_name].upcase}_INTERPRETER_HH_INCLUDED
-  #define GENERATED_#{ir_hash[:isa_name].upcase}_INTERPRETER_HH_INCLUDED
+  #ifndef GENERATED_#{arch.name.upcase}_INTERPRETER_HH_INCLUDED
+  #define GENERATED_#{arch.name.upcase}_INTERPRETER_HH_INCLUDED
 
   #include "base_exec_engine.hh"
 
@@ -27,13 +27,13 @@ CPP
     module TranslationUnit
       module_function
 
-      def generate_naive_interpreter(ir_hash)
+      def generate_naive_interpreter(arch)
         exec_functions = []
         branch_insns = []
 
-        ir_hash[:instructions].each do |insn|
-          name = insn[:name].to_s.upcase
-          seq = insn[:semantic_seq]
+        arch.instructions.each do |insn|
+          name = insn.name.to_s.upcase
+          seq = insn.semantic
 
           if seq && seq.stmts.any?
             translator = LiraCppGen::Translator.new(seq, :execute, 2)
@@ -64,8 +64,8 @@ bool isBranchInstruction(const Instruction &insn) {
 }
 CPP
 
-        handlers_init = ir_hash[:instructions].map do |insn|
-          "m_handlers[toUnderlying(Opcode::k#{insn[:name].to_s.upcase})] = &do#{insn[:name].to_s.upcase};"
+        handlers_init = arch.instructions.map do |insn|
+          "m_handlers[toUnderlying(Opcode::k#{insn.name.to_s.upcase})] = &do#{insn.name.to_s.upcase};"
         end.join("\n    ")
 
 <<~CPP
@@ -94,7 +94,7 @@ class ExecHandlersMap {
 public:
   using ExecHandler = void (*)(CPU &cpu, const Instruction &insn);
 private:
-  std::array<ExecHandler, #{ir_hash[:instructions].size}> m_handlers{};
+  std::array<ExecHandler, #{arch.instructions.size}> m_handlers{};
 public:
   constexpr ExecHandlersMap() {
     #{handlers_init}
