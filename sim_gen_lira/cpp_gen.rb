@@ -189,7 +189,7 @@ module LiraCppGen
       out = s.outputs[0]
       width = s.outputs_types[0]
       declare(out, width)
-      emit(context == :decode ? "#{out} = raw_insn;" : "#{out} = insn.operand#{idx};")
+      emit(context == :decode || context == :snippet ? "#{out} = raw_insn;" : "#{out} = insn.operand#{idx};")
     end
   end
 
@@ -198,7 +198,11 @@ module LiraCppGen
       s = stmt
       val = resolve_var(s.inputs[0])
       idx = s.specifier.to_i
-      emit("insn.operand#{idx} = #{val};")
+      if context == :snippet
+        emit("return #{val};")
+      else
+        emit("insn.operand#{idx} = #{val};")
+      end
     end
   end
 

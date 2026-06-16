@@ -5,6 +5,7 @@ $LOAD_PATH.unshift File.dirname(__FILE__)
 
 require_relative 'cpp_gen'
 require_relative 'base_ops_gen'
+require_relative 'snippets_gen'
 
 require_relative 'CPUState/cpu_state'
 require_relative 'Decoders/decoder'
@@ -65,3 +66,4 @@ File.write('isa.hh', SimGen::ISA::Header.generate_isa_header(ir_hash))
 File.write('hart.hh', SimGen::Hart::Header.generate_hart(ir_hash))
 File.write('hart.cc', SimGen::Hart::TranslationUnit.generate_hart(ir_hash))
 File.write('base_ops.h', SimGen.generate_base_ops(arch.operations))
+File.write('snippets.h', SimGen::Snippets.generate_snippets_header(ir_hash[:snippets]))

@@ -34,51 +34,30 @@ module SimGen
 
         body = []
         instructions.each do |insn|
-          decode_snippets = insn[:encoding][:decode_snippets]
           constraint_name = insn[:encoding][:constraint_decode]
+          decode_names = insn[:encoding][:decode_snippets]
 
-          next unless constraint_name
+          next unless constraint_name && decode_names
           constraint_seq = snippets[constraint_name]
           next unless constraint_seq
 
-          constraint_t = LiraCppGen::Translator.new(constraint_seq, :decode, 2)
-          constraint_code = constraint_t.translate
+          operand_calls = decode_names.each_with_index.map { |name, idx|
+            "insn.operand#{idx} = #{name}(raw_insn);"
+          }.join("\n    ")
 
-          if decode_snippets.nil? || decode_snippets.empty?
-            body << <<~CPP
-              {
-                #{constraint_code}
-                if (insn.operand0) {
-                  insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
-                  return insn;
-                }
-              }
-            CPP
-          else
-            snippet_name = decode_snippets.first
-            seq = snippets[snippet_name]
-            next unless seq
-
-            translator = LiraCppGen::Translator.new(seq, :decode, 2)
-            snippet_code = translator.translate
-
-            body << <<~CPP
-              {
-                #{constraint_code}
-                if (insn.operand0) {
-                  #{snippet_code}
-                  insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
-                  return insn;
-                }
-              }
-            CPP
-          end
+          body << <<~CPP
+            if (#{constraint_name}(raw_insn)) {
+              #{operand_calls}
+              insn.m_opc = Opcode::k#{insn[:name].to_s.upcase};
+              return insn;
+            }
+          CPP
         end
 
         decoder_impl = body.join("\n")
         <<~CPP
           #include "decoder.hh"
-          #include "base_ops.h"
+          #include "snippets.h"
           #include <optional>
 
           namespace prot::decoder {
