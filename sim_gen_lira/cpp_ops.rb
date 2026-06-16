@@ -19,35 +19,35 @@ module Lira
 
     def cpp_body
       case semantic_base
-      when 'not'          then 'return ~a;'
-      when 'neg'          then 'return -a;'
-      when 'add'          then 'return a + b;'
-      when 'sub'          then 'return a - b;'
-      when 'mul'          then 'return a * b;'
-      when 'and'          then 'return a & b;'
-      when 'orr'          then 'return a | b;'
-      when 'xor'          then 'return a ^ b;'
-      when 'eq'           then 'return (a == b) ? 1 : 0;'
-      when 'ne'           then 'return (a != b) ? 1 : 0;'
-      when 'slt'          then signed_cmp('<')
-      when 'sle'          then signed_cmp('<=')
-      when 'sgt'          then signed_cmp('>')
-      when 'sge'          then signed_cmp('>=')
-      when 'ult'          then 'return (a < b) ? 1 : 0;'
-      when 'ule'          then 'return (a <= b) ? 1 : 0;'
-      when 'ugt'          then 'return (a > b) ? 1 : 0;'
-      when 'uge'          then 'return (a >= b) ? 1 : 0;'
-      when 'lsl'          then "b &= #{inputs[0] - 1}; return a << b;"
-      when 'lsr'          then "b &= #{inputs[0] - 1}; return a >> b;"
-      when 'asr'          then asr_body
-      when 'div_u'        then 'return (b == 0) ? c : a / b;'
-      when 'div_s'        then div_s_body
-      when 'select'       then 'return a ? b : c;'
-      when 'rem_u'        then rem_u_body
-      when 'rem_s'        then rem_s_body
-      when 'extend_sign'  then extend_sign_body
-      when 'extend_zero'  then extend_zero_body
-      when 'extract_low'  then extract_low_body
+      when BaseOp::NOT          then 'return ~a;'
+      when BaseOp::NEG          then 'return -a;'
+      when BaseOp::ADD          then 'return a + b;'
+      when BaseOp::SUB          then 'return a - b;'
+      when BaseOp::MUL          then 'return a * b;'
+      when BaseOp::AND          then 'return a & b;'
+      when BaseOp::ORR          then 'return a | b;'
+      when BaseOp::XOR          then 'return a ^ b;'
+      when BaseOp::EQ           then 'return (a == b) ? 1 : 0;'
+      when BaseOp::NE           then 'return (a != b) ? 1 : 0;'
+      when BaseOp::SLT          then signed_cmp('<')
+      when BaseOp::SLE          then signed_cmp('<=')
+      when BaseOp::SGT          then signed_cmp('>')
+      when BaseOp::SGE          then signed_cmp('>=')
+      when BaseOp::ULT          then 'return (a < b) ? 1 : 0;'
+      when BaseOp::ULE          then 'return (a <= b) ? 1 : 0;'
+      when BaseOp::UGT          then 'return (a > b) ? 1 : 0;'
+      when BaseOp::UGE          then 'return (a >= b) ? 1 : 0;'
+      when BaseOp::LSL          then "b &= #{inputs[0] - 1}; return a << b;"
+      when BaseOp::LSR          then "b &= #{inputs[0] - 1}; return a >> b;"
+      when BaseOp::ASR          then asr_body
+      when BaseOp::DIV_U        then 'return (b == 0) ? c : a / b;'
+      when BaseOp::DIV_S        then div_s_body
+      when BaseOp::SELECT       then 'return a ? b : c;'
+      when BaseOp::REM_U        then rem_u_body
+      when BaseOp::REM_S        then rem_s_body
+      when BaseOp::EXTEND_SIGN  then extend_sign_body
+      when BaseOp::EXTEND_ZERO  then extend_zero_body
+      when BaseOp::EXTRACT_LOW  then extract_low_body
       else raise "No cpp_body defined for operation #{semantic_base}"
       end
     end

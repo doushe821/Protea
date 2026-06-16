@@ -63,7 +63,7 @@ module LiraCppGen
       inputs = s.inputs.map { |i| resolve_var(i) }
       op = OpRegistry.lookup(s.specifier)
 
-      if op.semantic_base == 'select'
+      if op.semantic_base == Lira::BaseOp::SELECT
         emit("#{out} = #{inputs[0]} ? #{inputs[1]} : #{inputs[2]};")
       else
         emit("#{out} = #{op.cpp_func_name}(#{inputs.join(', ')});")
