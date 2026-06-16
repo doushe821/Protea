@@ -353,6 +353,10 @@ class LiraSerializer
 
     @decode_cache = {}
     @decode_snip_id = 0
+    @encode_cache = {}
+    @encode_snip_id = 0
+    @constraint_cache = {}
+    @constraint_snip_id = 0
     @ops_used = Set.new
   end
 
@@ -461,55 +465,78 @@ class LiraSerializer
     @current_instr = nil
   end
 
-  # NOTE: It was temporary disabled
-  # def generate_encode_snippet(instr, operand_vars)
-  #   @builder = Lira::SnippetBuilder.new("temp_encode")
-  #
-  #   operand_values = operand_vars.each_with_index.map do |var, idx|
-  #     width = ADLToLiraUtils.convert_type(var.type)
-  #     width = 1 if width < 1
-  #     @builder.input(idx, width)
-  #   end
-  #
-  #   base = @builder.const(0, 32)
-  #   instr.fields.each do |field|
-  #     lo = field.from
-  #     hi = field.to
-  #     width = hi - lo + 1
-  #     width = 1 if width < 1
-  #     field_var_name = field.value.name.to_s
-  #     value_num = field.value.value
-  #     if value_num
-  #       const_val = @builder.const(value_num, width)
-  #       const_val = ADLToLiraUtils.ensure_width(const_val, 32, @builder)
-  #       shifted = @builder.lsl(const_val, @builder.const(lo, 32))
-  #       base = @builder.orr(base, shifted)
-  #     elsif field_var_name =~ /^f_(.+)$/
-  #       operand_name = $1
-  #       idx = operand_vars.index { |v| v.name.to_s == operand_name }
-  #       if idx
-  #         op_val = operand_values[idx]
-  #         op_val = ADLToLiraUtils.ensure_width(op_val, 32, @builder)
-  #         shifted = @builder.lsl(op_val, @builder.const(lo, 32))
-  #         base = @builder.orr(base, shifted)
-  #       end
-  #     end
-  #   end
-  #
-  #   @builder.output(base, 0)
-  #   snippet = @builder.build
-  #   seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
-  #   if @encode_cache.key?(seq_str)
-  #     return @encode_cache[seq_str]
-  #   else
-  #     unique_name = "encode_#{@encode_snip_id}"
-  #     snippet.name = unique_name
-  #     @arch_builder.add_snippet(snippet)
-  #     @encode_snip_id += 1
-  #     @encode_cache[seq_str] = unique_name
-  #     unique_name
-  #   end
-  # end
+  def generate_encode_snippet(instr, operand_vars)
+    @builder = Lira::SnippetBuilder.new('temp_encode')
+
+    operand_values = operand_vars.each_with_index.map do |var, idx|
+      width = ADLToLiraUtils.convert_type(var.type)
+      width = 1 if width < 1
+      @builder.input(idx, width)
+    end
+
+    base = @builder.const(0, 32)
+    instr.fields.each do |field|
+      lo = field.from
+      hi = field.to
+      width = hi - lo + 1
+      width = 1 if width < 1
+      field_var_name = field.value.name.to_s
+      value_num = field.value.value
+      if value_num
+        const_val = @builder.const(value_num, width)
+        const_val = @builder.ensure_width(const_val, 32)
+        shifted = @builder.lsl(const_val, @builder.const(lo, 32))
+        base = @builder.orr(base, shifted)
+      elsif field_var_name =~ /^f_(.+)$/
+        operand_name = $1
+        idx = operand_vars.index { |v| v.name.to_s == operand_name }
+        if idx
+          op_val = operand_values[idx]
+          op_val = @builder.ensure_width(op_val, 32)
+          shifted = @builder.lsl(op_val, @builder.const(lo, 32))
+          base = @builder.orr(base, shifted)
+        end
+      end
+    end
+
+    @builder.output(base, 0)
+    snippet = @builder.build
+    collect_ops(snippet.seq)
+    seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
+
+    if @encode_cache.key?(seq_str)
+      @encode_cache[seq_str]
+    else
+      unique_name = "encode_#{@encode_snip_id}"
+      snippet.name = unique_name
+      @arch_builder.add_snippet(snippet)
+      @encode_snip_id += 1
+      @encode_cache[seq_str] = unique_name
+      unique_name
+    end
+  end
+
+  def generate_constraint_snippet(const_part, const_mask)
+    @builder = Lira::SnippetBuilder.new('temp_constraint')
+    raw = @builder.input(0, 32)
+    masked = @builder.and_(raw, @builder.const(const_mask, 32))
+    result = op_cmp(:eq, false, masked, @builder.const(const_part, 32))
+    @builder.output(result, 0)
+    snippet = @builder.build
+    collect_ops(snippet.seq)
+    seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
+
+    if @constraint_cache.key?(seq_str)
+      @constraint_cache[seq_str]
+    else
+      unique_name = "constraint_#{@constraint_snip_id}"
+      snippet.name = unique_name
+      @arch_builder.add_snippet(snippet)
+      @constraint_snip_id += 1
+      @constraint_cache[seq_str] = unique_name
+      unique_name
+    end
+  end
 
   def collect_operand_vars(instr)
     operand_vars = []
@@ -535,12 +562,13 @@ class LiraSerializer
     semantic = generate_semantic(instr)
 
     decode_snippets = []
+    encode_snippet = ''
     if instr.map.tree.any? && operand_vars.any?
       decode_snippets = generate_decode_snippets(instr, operand_vars)
     end
-    # if instr.fields.any? && operand_vars.any?
-    #   encode_snippet = generate_encode_snippet(instr, operand_vars)
-    # end
+    if instr.fields.any? && operand_vars.any?
+      encode_snippet = generate_encode_snippet(instr, operand_vars)
+    end
 
     const_part = 0
     const_mask = 0
@@ -556,7 +584,8 @@ class LiraSerializer
     end
 
     operand_sizes = operand_vars.map { |v| ADLToLiraUtils.convert_type(v.type) }
-    encoding = Lira::InstructionEncoding.new(32, const_part, const_mask, decode_snippets, '', '', '')
+    constraint_decode = generate_constraint_snippet(const_part, const_mask)
+    encoding = Lira::InstructionEncoding.new(32, const_part, const_mask, decode_snippets, encode_snippet, constraint_decode, '')
     Lira::Instruction.new(instr.name.to_s, [], operand_sizes, operand_names, encoding, semantic)
   ensure
     @current_instr = nil
