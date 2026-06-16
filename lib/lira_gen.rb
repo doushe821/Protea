@@ -566,7 +566,7 @@ class LiraSerializer
 
     decode_snippets = []
     encode_snippet = ''
-    if instr.map.tree.any? && operand_vars.any?
+    if !instr.operand_map.empty? && operand_vars.any?
       decode_snippets = generate_decode_snippets(instr, operand_vars)
     end
     if instr.fields.any? && operand_vars.any?
