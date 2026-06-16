@@ -353,6 +353,7 @@ class LiraSerializer
 
     @decode_cache = {}
     @decode_snip_id = 0
+    @ops_used = Set.new
   end
 
   def resolved(op)
@@ -399,6 +400,10 @@ class LiraSerializer
     end
   end
 
+  def collect_ops(seq)
+    seq.stmts.each { |s| @ops_used << s.specifier if s.kind == 'op' }
+  end
+
   def stmt_to_lira(stmt)
     handler_class = HANDLER_MAP[stmt.name] or raise "Unhandled statement: #{stmt.name}"
     handler_class.new(self).handle(stmt)
@@ -414,7 +419,9 @@ class LiraSerializer
     @vars = {}
     @operand_names = collect_operand_names(instr)
     instr.code.tree.each { |stmt| stmt_to_lira(stmt) }
-    @builder.seq.build
+    seq = @builder.seq.build
+    collect_ops(seq)
+    seq
   end
 
   def generate_decode_snippets(instr, operand_vars)
@@ -436,6 +443,7 @@ class LiraSerializer
     end
 
     snippet = @builder.build
+    collect_ops(snippet.seq)
     seq_str = Lira::IrSerTxt.serialize_statement_seq(snippet.seq)
 
     if @decode_cache.key?(seq_str)
@@ -584,6 +592,11 @@ class LiraSerializer
       rescue => e
         warn "Skipping #{instr.name}: #{e}"
       end
+    end
+
+    @ops_used.each do |op_name|
+      op = Lira.lookup_operation(op_name)
+      @arch_builder.add_operation(op) if op
     end
 
     @arch_builder.build

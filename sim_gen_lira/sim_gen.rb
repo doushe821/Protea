@@ -63,4 +63,4 @@ File.write('decoder.cc', SimGen::Decoder::TranslationUnit.generate_decoder(ir_ha
 File.write('isa.hh', SimGen::ISA::Header.generate_isa_header(ir_hash))
 File.write('hart.hh', SimGen::Hart::Header.generate_hart(ir_hash))
 File.write('hart.cc', SimGen::Hart::TranslationUnit.generate_hart(ir_hash))
-File.write('base_ops.h', SimGen.generate_base_ops)
+File.write('base_ops.h', SimGen.generate_base_ops(arch.operations))

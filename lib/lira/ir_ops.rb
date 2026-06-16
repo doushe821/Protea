@@ -16,10 +16,6 @@ module Lira
         "#{base_name}_#{outputs.join('_')}"
       end
     end
-
-    def self.standard_sizes
-      [8, 16, 32, 64, 128]
-    end
   end
 
   class UnaryOp < Operation
@@ -310,62 +306,62 @@ module Lira
       raise TypeCheckError, 'true/false branches mismatch' unless inputs[1] == inputs[2] && inputs[1] == outputs[0]
     end
   end
-end
 
-module Lira
-  class Not; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Neg; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Popcnt; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Clz; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Ctz; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Reverse; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Add; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Sub; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Mul; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class And; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Orr; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Xor; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Lsl; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Lsr; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Asr; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Eq; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Ne; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Slt; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Sle; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Sgt; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Sge; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Ult; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Ule; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Ugt; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Uge; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class DivU; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class DivS; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
-  class Select; def self.instances_to_generate; StdOperation.standard_sizes.map { |b| [b] }; end; end
+  BASE_OP_CLASSES = {
+    'not' => Not,
+    'neg' => Neg,
+    'popcnt' => Popcnt,
+    'clz' => Clz,
+    'ctz' => Ctz,
+    'reverse' => Reverse,
+    'add' => Add,
+    'sub' => Sub,
+    'mul' => Mul,
+    'and' => And,
+    'orr' => Orr,
+    'xor' => Xor,
+    'lsl' => Lsl,
+    'lsr' => Lsr,
+    'asr' => Asr,
+    'eq' => Eq,
+    'ne' => Ne,
+    'slt' => Slt,
+    'sle' => Sle,
+    'sgt' => Sgt,
+    'sge' => Sge,
+    'ult' => Ult,
+    'ule' => Ule,
+    'ugt' => Ugt,
+    'uge' => Uge,
+    'div_s' => DivS,
+    'div_u' => DivU,
+    'rem_s' => RemS,
+    'rem_u' => RemU,
+    'ror' => Ror,
+    'rol' => Rol,
+    'add_overflow' => AddOverflow,
+    'sub_overflow' => SubOverflow,
+    'select' => Select,
+  }.freeze
 
-  class ExtendSign
-    def self.instances_to_generate
-      inside = [
-        [1, 13], [6, 13], [4, 13],
-        [1, 21], [8, 21], [10, 21],
-        [7, 12], [5, 12]
-      ]
-      to32 = (2..31).map { |n| [n, 32] }
-      inside + to32
+  def self.lookup_operation(name)
+    if (m = name.match(/^extend_sign_(\d+)_to_(\d+)$/))
+      return ExtendSign.new(m[1].to_i, m[2].to_i)
     end
-  end
-
-  class ExtendZero
-    def self.instances_to_generate
-      ExtendSign.instances_to_generate
+    if (m = name.match(/^extend_zero_(\d+)_to_(\d+)$/))
+      return ExtendZero.new(m[1].to_i, m[2].to_i)
     end
-  end
-
-  class ExtractLow
-    def self.instances_to_generate
-      (2..31).map { |n| [32, n] }
+    if (m = name.match(/^extract_low_(\d+)_to_(\d+)$/))
+      return ExtractLow.new(m[1].to_i, m[2].to_i)
     end
+    parts = name.split('_')
+    return nil unless parts.last.match?(/^\d+$/)
+    width = parts.pop.to_i
+    (1..parts.size).reverse_each do |len|
+      base = parts[0...len].join('_')
+      klass = BASE_OP_CLASSES[base]
+      return klass.new(width) if klass
+    end
+    nil
   end
-
-  class RemU; def self.instances_to_generate; [[32], [64]]; end; end
-  class RemS; def self.instances_to_generate; [[32], [64]]; end; end
 end

@@ -115,7 +115,7 @@ module Lira
     end
 
     def cpp_params
-      "#{Utility::HelperCpp.gen_type(outputs[0])} a"
+      "#{Utility::HelperCpp.gen_type(inputs[0])} a"
     end
   end
 
@@ -125,7 +125,7 @@ module Lira
     end
 
     def cpp_params
-      "#{Utility::HelperCpp.gen_type(outputs[0])} a"
+      "#{Utility::HelperCpp.gen_type(inputs[0])} a"
     end
   end
 
@@ -137,6 +137,7 @@ module Lira
 
   class ExtendSign
     def cpp_body
+      return 'return a;' if inputs[0] == 1
       t = Utility::HelperCpp.gen_type(outputs[0])
       <<~CPP
       #{t} val = a & (((#{t})1 << #{inputs[0]}) - 1);

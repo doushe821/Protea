@@ -6,68 +6,8 @@ require_relative '../lib/Utility/helper_cpp'
 
 module LiraCppGen
   module OpRegistry
-    BASE_TO_CLASS = {
-      'not' => Lira::Not,
-      'neg' => Lira::Neg,
-      'popcnt' => Lira::Popcnt,
-      'clz' => Lira::Clz,
-      'ctz' => Lira::Ctz,
-      'reverse' => Lira::Reverse,
-      'add' => Lira::Add,
-      'sub' => Lira::Sub,
-      'mul' => Lira::Mul,
-      'and' => Lira::And,
-      'orr' => Lira::Orr,
-      'xor' => Lira::Xor,
-      'lsl' => Lira::Lsl,
-      'lsr' => Lira::Lsr,
-      'asr' => Lira::Asr,
-      'eq' => Lira::Eq,
-      'ne' => Lira::Ne,
-      'slt' => Lira::Slt,
-      'sle' => Lira::Sle,
-      'sgt' => Lira::Sgt,
-      'sge' => Lira::Sge,
-      'ult' => Lira::Ult,
-      'ule' => Lira::Ule,
-      'ugt' => Lira::Ugt,
-      'uge' => Lira::Uge,
-      'div_s' => Lira::DivS,
-      'div_u' => Lira::DivU,
-      'rem_s' => Lira::RemS,
-      'rem_u' => Lira::RemU,
-      'ror' => Lira::Ror,
-      'rol' => Lira::Rol,
-      'add_overflow' => Lira::AddOverflow,
-      'sub_overflow' => Lira::SubOverflow,
-      'select' => Lira::Select,
-    }.freeze
-
-    SPECIAL = [
-      [/^extend_sign_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtendSign.new(m[1].to_i, m[2].to_i) }],
-      [/^extend_zero_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtendZero.new(m[1].to_i, m[2].to_i) }],
-      [/^extract_low_(\d+)_to_(\d+)$/, ->(m) { Lira::ExtractLow.new(m[1].to_i, m[2].to_i) }]
-    ].freeze
-
-    def self.lookup(specifier)
-      SPECIAL.each do |pattern, factory|
-        m = specifier.match(pattern)
-        return factory.call(m) if m
-      end
-      parse_standard(specifier) or raise "Unknown operation: #{specifier}"
-    end
-
-    def self.parse_standard(specifier)
-      parts = specifier.split('_')
-      return nil unless parts.last.match?(/^\d+$/)
-
-      width = parts.pop.to_i
-      (1..parts.size).reverse_each do |len|
-        base = parts[0...len].join('_')
-        klass = BASE_TO_CLASS[base]
-        return klass.new(width) if klass
-      end
-      nil
+    def self.lookup(name)
+      Lira.lookup_operation(name) or raise "Unknown operation: #{name}"
     end
   end
 
