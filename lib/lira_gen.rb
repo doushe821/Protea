@@ -84,13 +84,11 @@ class LiraSerializer
     def handle(stmt)
       lhs, rhs = stmt.oprnds
       if rhs.is_a?(SimInfra::Var) && rhs.name.to_s.start_with?('f_')
-        field_name = rhs.name.to_s[2..]
-        field = current_instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
-        if field
-          vars[lhs] = ADLToLiraUtils.extract_field(builder, ser.raw_enc, field, lhs.type)
-        else
-          warn "Field #{field_name} not found"
+        val = ser.resolve_field(rhs)
+        if val && val.width != ADLToLiraUtils.convert_type(lhs.type)
+          val = builder.extend_zero(val, ADLToLiraUtils.convert_type(lhs.type))
         end
+        vars[lhs] = val if val
       else
         rhs_val = ADLToLiraUtils.resolve_operand(rhs, builder, vars, [], arch_builder)
         vars[lhs] = rhs_val if rhs_val
@@ -145,13 +143,8 @@ class LiraSerializer
       if src
         vars[lhs] = ser.widen_or_truncate(name, lhs.type, src, rhs.type)
       elsif rhs.is_a?(SimInfra::Var) && rhs.name.to_s.start_with?('f_')
-        field_name = rhs.name.to_s[2..]
-        field = current_instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
-        if field
-          vars[lhs] = ADLToLiraUtils.extract_field(builder, ser.raw_enc, field, lhs.type)
-        else
-          warn "Field #{field_name} not found"
-        end
+        val = ser.resolve_field(rhs, lhs.type)
+        vars[lhs] = val if val
       else
         rhs_val = ADLToLiraUtils.resolve_operand(rhs, builder, vars, [], arch_builder)
         vars[lhs] = rhs_val if rhs_val
@@ -404,6 +397,16 @@ class LiraSerializer
     else
       @builder.extend_sign(src, dest_width)
     end
+  end
+
+  def resolve_field(field_var, dest_type = :b32)
+    field_name = field_var.name.to_s[2..]
+    field = @current_instr.fields.find { |f| f.value.name.to_s == "f_#{field_name}" }
+    unless field
+      warn "Field #{field_name} not found"
+      return nil
+    end
+    ADLToLiraUtils.extract_field(@builder, @raw_enc, field, dest_type)
   end
 
   def collect_ops(_seq)
