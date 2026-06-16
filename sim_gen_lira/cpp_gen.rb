@@ -106,7 +106,7 @@ module LiraCppGen
       if context == :execute
         emit("#{out} = cpu.get#{rf}<#{Utility::HelperCpp.gen_type(width)}>(#{idx});")
       else
-        emit("#{out} = 0; // read in decode")
+        raise "Unexpected read statement in decode section"
       end
     end
   end
