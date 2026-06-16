@@ -35,7 +35,8 @@ module Lira
     ADD_OVERFLOW = :add_overflow;
     SUB_OVERFLOW = :sub_overflow
     SELECT = :select
-    EXTEND_SIGN = :extend_sign; EXTEND_ZERO = :extend_zero
+    EXTEND_SIGN = :extend_sign;
+    EXTEND_ZERO = :extend_zero
     EXTRACT_LOW = :extract_low
     POPCNT = :popcnt;
     CTZ = :ctz;
