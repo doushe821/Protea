@@ -137,7 +137,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: lsr
+  :semantic_base: :lsr
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -147,7 +147,7 @@
   - 32
   :outputs:
   - 5
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -157,7 +157,7 @@
   - 5
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -167,7 +167,7 @@
   - 32
   :outputs:
   - 20
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -177,7 +177,7 @@
   - 20
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -188,7 +188,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: lsl
+  :semantic_base: :lsl
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -198,7 +198,7 @@
   - 1
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -209,7 +209,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: orr
+  :semantic_base: :orr
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -220,7 +220,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: and
+  :semantic_base: :and
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -231,7 +231,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: eq
+  :semantic_base: :eq
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -242,7 +242,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: add
+  :semantic_base: :add
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -253,7 +253,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: sub
+  :semantic_base: :sub
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -264,7 +264,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: slt
+  :semantic_base: :slt
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -274,7 +274,7 @@
   - 1
   :outputs:
   - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -285,7 +285,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: ult
+  :semantic_base: :ult
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -296,7 +296,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: xor
+  :semantic_base: :xor
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -307,7 +307,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: asr
+  :semantic_base: :asr
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -317,7 +317,7 @@
   - 32
   :outputs:
   - 12
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -327,17 +327,7 @@
   - 12
   :outputs:
   - 32
-  :semantic_base: extend_sign
-  :semantic_func: {}
-  :semantic_func_128: {}
-  :semantic_table: {}
-- :name: extend_sign_5_to_32
-  :attributes: []
-  :inputs:
-  - 5
-  :outputs:
-  - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -349,7 +339,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: select
+  :semantic_base: :select
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -359,7 +349,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -369,7 +359,7 @@
   - 1
   :outputs:
   - 13
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -379,7 +369,7 @@
   - 13
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -389,7 +379,7 @@
   - 32
   :outputs:
   - 6
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -399,7 +389,7 @@
   - 6
   :outputs:
   - 13
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -409,7 +399,7 @@
   - 32
   :outputs:
   - 4
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -419,7 +409,7 @@
   - 4
   :outputs:
   - 13
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -429,7 +419,7 @@
   - 32
   :outputs:
   - 13
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -439,7 +429,7 @@
   - 13
   :outputs:
   - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -450,7 +440,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: ne
+  :semantic_base: :ne
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -461,7 +451,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: sge
+  :semantic_base: :sge
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -472,7 +462,7 @@
   - 32
   :outputs:
   - 1
-  :semantic_base: uge
+  :semantic_base: :uge
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -482,7 +472,7 @@
   - 1
   :outputs:
   - 21
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -492,7 +482,7 @@
   - 21
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -502,7 +492,7 @@
   - 32
   :outputs:
   - 8
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -512,7 +502,7 @@
   - 8
   :outputs:
   - 21
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -522,7 +512,7 @@
   - 32
   :outputs:
   - 10
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -532,7 +522,7 @@
   - 10
   :outputs:
   - 21
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -542,7 +532,7 @@
   - 32
   :outputs:
   - 21
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -552,7 +542,7 @@
   - 21
   :outputs:
   - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -562,7 +552,7 @@
   - 32
   :outputs:
   - 7
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -572,7 +562,7 @@
   - 7
   :outputs:
   - 12
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -582,7 +572,7 @@
   - 12
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -592,7 +582,7 @@
   - 5
   :outputs:
   - 12
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -602,7 +592,7 @@
   - 32
   :outputs:
   - 16
-  :semantic_base: extract_low
+  :semantic_base: :extract_low
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -612,7 +602,7 @@
   - 8
   :outputs:
   - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -622,7 +612,7 @@
   - 16
   :outputs:
   - 32
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -632,7 +622,7 @@
   - 8
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -642,7 +632,7 @@
   - 16
   :outputs:
   - 32
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -653,7 +643,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: mul
+  :semantic_base: :mul
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -663,7 +653,7 @@
   - 32
   :outputs:
   - 64
-  :semantic_base: extend_sign
+  :semantic_base: :extend_sign
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -674,7 +664,7 @@
   - 64
   :outputs:
   - 64
-  :semantic_base: mul
+  :semantic_base: :mul
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -684,7 +674,7 @@
   - 32
   :outputs:
   - 64
-  :semantic_base: extend_zero
+  :semantic_base: :extend_zero
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -695,7 +685,7 @@
   - 64
   :outputs:
   - 64
-  :semantic_base: asr
+  :semantic_base: :asr
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -706,7 +696,7 @@
   - 64
   :outputs:
   - 64
-  :semantic_base: lsr
+  :semantic_base: :lsr
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -718,7 +708,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: div_s
+  :semantic_base: :div_s
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -730,7 +720,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: div_u
+  :semantic_base: :div_u
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -741,7 +731,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: rem_s
+  :semantic_base: :rem_s
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -752,7 +742,7 @@
   - 32
   :outputs:
   - 32
-  :semantic_base: rem_u
+  :semantic_base: :rem_u
   :semantic_func: {}
   :semantic_func_128: {}
   :semantic_table: {}
@@ -1443,14 +1433,6 @@
     1 32 _t4 = const 28691;
     1 1 _t5 = op eq_32 _t3 _t4;
     1 = output 0 _t5;
-- :name: decode_5
-  :seq: |
-    1 32 _t1 = input 0;
-    1 32 _t3 = const 20;
-    1 32 _t4 = op lsr_32 _t1 _t3;
-    1 5 _t5 = op extract_low_32_to_5 _t4;
-    1 32 _t6 = op extend_sign_5_to_32 _t5;
-    1 = output 0 _t6;
 - :name: encode_18
   :seq: |
     1 32 _t1 = input 0;
@@ -1559,7 +1541,7 @@
     1 32 _t4 = const 1073762323;
     1 1 _t5 = op eq_32 _t3 _t4;
     1 = output 0 _t5;
-- :name: decode_6
+- :name: decode_5
   :seq: |
     1 32 _t1 = input 0;
     1 32 _t3 = const 31;
@@ -1782,7 +1764,7 @@
     1 32 _t4 = const 28771;
     1 1 _t5 = op eq_32 _t3 _t4;
     1 = output 0 _t5;
-- :name: decode_7
+- :name: decode_6
   :seq: |
     1 32 _t1 = input 0;
     1 32 _t3 = const 31;
@@ -1875,7 +1857,7 @@
     1 32 _t4 = const 103;
     1 1 _t5 = op eq_32 _t3 _t4;
     1 = output 0 _t5;
-- :name: decode_8
+- :name: decode_7
   :seq: |
     1 32 _t1 = input 0;
     1 32 _t3 = const 25;
@@ -3017,7 +2999,7 @@
     :const_encoding_part: 4115
     :const_mask: 4261441663
     :decode:
-    - decode_5
+    - decode_2
     - decode_3
     - decode_0
     :encode: encode_18
@@ -3045,7 +3027,7 @@
     :const_encoding_part: 20499
     :const_mask: 4261441663
     :decode:
-    - decode_5
+    - decode_2
     - decode_3
     - decode_0
     :encode: encode_19
@@ -3073,7 +3055,7 @@
     :const_encoding_part: 1073762323
     :const_mask: 4261441663
     :decode:
-    - decode_5
+    - decode_2
     - decode_3
     - decode_0
     :encode: encode_20
@@ -3101,7 +3083,7 @@
     :const_encoding_part: 99
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_21
@@ -3135,7 +3117,7 @@
     :const_encoding_part: 4195
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_22
@@ -3169,7 +3151,7 @@
     :const_encoding_part: 16483
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_23
@@ -3203,7 +3185,7 @@
     :const_encoding_part: 20579
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_24
@@ -3237,7 +3219,7 @@
     :const_encoding_part: 24675
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_25
@@ -3271,7 +3253,7 @@
     :const_encoding_part: 28771
     :const_mask: 28799
     :decode:
-    - decode_6
+    - decode_5
     - decode_3
     - decode_2
     :encode: encode_26
@@ -3303,7 +3285,7 @@
     :const_encoding_part: 111
     :const_mask: 127
     :decode:
-    - decode_7
+    - decode_6
     - decode_0
     :encode: encode_27
     :constraint_decode: constraint_27
@@ -3366,7 +3348,7 @@
     :const_encoding_part: 35
     :const_mask: 28799
     :decode:
-    - decode_8
+    - decode_7
     - decode_3
     - decode_2
     :encode: encode_29
@@ -3398,7 +3380,7 @@
     :const_encoding_part: 4131
     :const_mask: 28799
     :decode:
-    - decode_8
+    - decode_7
     - decode_3
     - decode_2
     :encode: encode_30
@@ -3430,7 +3412,7 @@
     :const_encoding_part: 8227
     :const_mask: 28799
     :decode:
-    - decode_8
+    - decode_7
     - decode_3
     - decode_2
     :encode: encode_31
