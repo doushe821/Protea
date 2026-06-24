@@ -121,7 +121,6 @@ class LiraSerializer
       oprnds = stmt.oprnds
       cond, t, f = resolved(oprnds[1]), resolved(oprnds[2]), resolved(oprnds[3])
       return if cond.nil? || t.nil? || f.nil?
-      cond = builder.ensure_width(cond, 1)
       store(oprnds[0], builder.select(cond, t, f))
     end
   end
@@ -160,7 +159,7 @@ class LiraSerializer
       hi, lo = oprnds[2].value, oprnds[3].value
       width = hi - lo + 1
       width = 1 if width < 1
-      store(oprnds[0], builder.extract(val, builder.const(lo, 32), width))
+      store(oprnds[0], builder.extract_low(val, width))
     end
   end
 
@@ -365,25 +364,13 @@ class LiraSerializer
   def op_alu(adl_name, lhs_signed, a, b)
     op_name = adl_name == :shr && lhs_signed ? :ashr : adl_name
     op_class = OP_MAP[op_name] or raise "Unknown ALU op: #{adl_name}"
-    w = [a.width, b.width].max
-    a = @builder.ensure_width(a, w)
-    b = @builder.ensure_width(b, w)
-    op = @builder.get_or_create_op(op_class, w)
-    out = @builder.seq.new_temp(w)
-    @builder.seq.add_op(op, [a.name, b.name], [out.name])
-    out
+    @builder.op(op_class.new(a.width), [a, b])
   end
 
   def op_cmp(adl_name, unsigned, a, b)
     op_map = unsigned ? CMP_OP_MAP_U : CMP_OP_MAP_S
     op_class = op_map[adl_name] or raise "Unknown cmp op: #{adl_name}"
-    w = [a.width, b.width].max
-    a = @builder.ensure_width(a, w)
-    b = @builder.ensure_width(b, w)
-    op = @builder.get_or_create_op(op_class, w)
-    out = @builder.seq.new_temp(1)
-    @builder.seq.add_op(op, [a.name, b.name], [out.name])
-    out
+    @builder.op(op_class.new(a.width), [a, b])
   end
 
   def widen_or_truncate(name, dest_type, src, src_type)
@@ -496,7 +483,7 @@ class LiraSerializer
       value_num = field.value.value
       if value_num
         const_val = @builder.const(value_num, width)
-        const_val = @builder.ensure_width(const_val, 32)
+        const_val = @builder.extend_zero(const_val, 32) if const_val.width < 32
         shifted = @builder.lsl(const_val, @builder.const(lo, 32))
         base = @builder.orr(base, shifted)
       elsif field_var_name =~ /^f_(.+)$/
@@ -504,7 +491,7 @@ class LiraSerializer
         idx = operand_vars.index { |v| v.name.to_s == operand_name }
         if idx
           op_val = operand_values[idx]
-          op_val = @builder.ensure_width(op_val, 32)
+          op_val = @builder.extend_zero(op_val, 32) if op_val.width < 32
           shifted = @builder.lsl(op_val, @builder.const(lo, 32))
           base = @builder.orr(base, shifted)
         end
@@ -656,12 +643,8 @@ end
 
 def extract_arch_name(_loaded_modules)
   target_name = nil
-  ObjectSpace.each_object(Module) do |mod|
-    if mod.is_a?(Module) && mod.name && mod.name !~ /^SimInfra/ && mod.constants.include?(:XRegs)
-      target_name = mod.name.to_s
-      break
-    end
-  end
+  instructions = SimInfra.class_variable_get(:@@instructions)
+  target_name = instructions.first.feature.to_s unless instructions.empty?
   target_name ||= 'TargetArch'
   [target_name, []]
 end
