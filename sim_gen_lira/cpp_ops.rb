@@ -37,8 +37,8 @@ module Lira
       when BaseOp::ULE          then 'return (a <= b) ? 1 : 0;'
       when BaseOp::UGT          then 'return (a > b) ? 1 : 0;'
       when BaseOp::UGE          then 'return (a >= b) ? 1 : 0;'
-      when BaseOp::LSL          then "b &= #{inputs[0] - 1}; return a << b;"
-      when BaseOp::LSR          then "b &= #{inputs[0] - 1}; return a >> b;"
+      when BaseOp::LSL          then "return a << b;"
+      when BaseOp::LSR          then "return a >> b;"
       when BaseOp::ASR          then asr_body
       when BaseOp::DIV_U        then 'return (b == 0) ? c : a / b;'
       when BaseOp::DIV_S        then div_s_body
@@ -71,7 +71,7 @@ module Lira
     def asr_body
       t = Utility::HelperCpp.gen_type(inputs[0])
       ts = Utility::HelperCpp.gen_type(inputs[0], true)
-      "b &= #{inputs[0] - 1}; return (#{t})((#{ts})a >> b);"
+      "return (#{t})((#{ts})a >> b);"
     end
 
     def div_s_body

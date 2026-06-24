@@ -3,6 +3,11 @@
 
 $LOAD_PATH.unshift File.dirname(__FILE__)
 
+require_relative '../lib/lira/arch_ser_yaml'
+
+arch = Lira::ArchSerYaml.read_arch(ARGV[0])
+require "Target/#{arch.name}/cpp_ops"
+
 require_relative 'cpp_gen'
 require_relative 'base_ops_gen'
 require_relative 'snippets_gen'
@@ -13,9 +18,7 @@ require_relative 'ISA/isa'
 require_relative 'ExecEngines/naive_interpreter'
 require_relative 'ExecEngines/base_exec_engine'
 require_relative 'Hart/hart'
-require_relative '../lib/lira/arch_ser_yaml'
 
-arch = Lira::ArchSerYaml.read_arch(ARGV[0])
 LiraCppGen::OpRegistry.ops = arch.operations.to_h { |op| [op.name, op] }
 
 File.write('cpu_state.hh',  SimGen::CPUState::Header.generate_cpu_state(arch))
