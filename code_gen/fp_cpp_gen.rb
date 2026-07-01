@@ -90,7 +90,7 @@ module CodeGen
       emit_rm_restore if rm
     end
 
-    # float -> int conversions need to be handled separetely, because
+    # float -> int conversions need to be handled separately, because
     # they break general pattern of softfloat instructions by demanding
     # rounding mode as an argument (they ignore global constant that all other
     # fp functions use for some unknown reason).
