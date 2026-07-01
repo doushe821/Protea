@@ -1,6 +1,6 @@
 # PROPOSAL:
 # Add rv64f isa description
-require_relative 'encoding'
+require_relative 'fp_encoding'
 require_relative '../../ADL/base'
 require_relative '../../ADL/builder'
 
