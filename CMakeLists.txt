@@ -23,7 +23,6 @@ include(cmake/CompilerOptions.cmake)
 include(cmake/CPM.cmake)
 include(CTest)
 include(cmake/dependencies.cmake)
-include(cmake/softfloat.cmake)
 include(cmake/CompilerConfig.cmake)
 
 if(PROTEA_BUILD_TESTS)

@@ -1,8 +1,8 @@
 # Gemfile
 
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-ruby "3.4.8"
+ruby '4.0.1'
 
 gem 'minitest', '~> 5.14'
 gem 'rspec', '~> 3.12'
