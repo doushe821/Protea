@@ -1,10 +1,5 @@
 # PROPOSAL:
-# Autoformatter works on file save, so I had no choice)
-# (autoformatted)
-require_relative 'scope'
-require 'Utility/type'
-# PROPOSAL:
-# Autoformatter works on file save, so I had no choice)
+# Autoformatter works on file save, so I had no choice
 # (autoformatted)
 require_relative 'scope'
 require 'Utility/type'
@@ -18,14 +13,6 @@ module SimInfra
       @oprnds = oprnds
       @attrs = attrs
     end
-  class IrStmt
-    attr_reader :name, :oprnds, :attrs
-
-    def initialize(name, oprnds, attrs)
-      @name = name
-      @oprnds = oprnds
-      @attrs = attrs
-    end
 
     def to_h
       {
@@ -40,24 +27,7 @@ module SimInfra
         attrs: @attrs
       }
     end
-    def to_h
-      {
-        name: @name,
-        oprnds: @oprnds.map do |o|
-          if [Var, Constant].include?(o.class)
-            o.to_h
-          else
-            o
-          end
-        end,
-        attrs: @attrs
-      }
-    end
 
-    def self.from_h(h)
-      IrStmt.new(h[:name], h[:oprnds], h[:attrs])
-    end
-  end
     def self.from_h(h)
       IrStmt.new(h[:name], h[:oprnds], h[:attrs])
     end
@@ -69,18 +39,11 @@ module SimInfra
   def assert(condition, msg = nil)
     raise msg unless condition
   end
-module SimInfra
-  def assert(condition, msg = nil)
-    raise msg unless condition
-  end
 
   @@instructions = []
   @@interface_functions = []
   @@operands = []
 
-  def self.interface_functions
-    @@interface_functions
-  end
   def self.interface_functions
     @@interface_functions
   end
@@ -154,12 +117,7 @@ module SimInfra
 
   class InstructionInfoBuilder
     include SimInfra
-  class InstructionInfoBuilder
-    include SimInfra
 
-    def initialize(name, feature)
-      @info = InstructionInfo.new(name, feature)
-      @info.code = Scope.new(nil)
     def initialize(name, feature)
       @info = InstructionInfo.new(name, feature)
       @info.code = Scope.new(nil)
@@ -171,13 +129,9 @@ module SimInfra
           @info.code.instance_eval "def #{func[:name]}(*args)
                         in_s = *args.map { |a| resolve_const(a) }
                         in_stmt = [tmpvar(#{func[:return_types][0]})]
-                        in_stmt = [tmpvar(#{func[:return_types][0]})]
                         in_stmt.concat(in_s)
                         return stmt :#{func[:name]}, in_stmt
                     end
-                    ", __FILE__, __LINE__ - 6
-        else
-          @info.code.instance_eval "def #{func[:name]}(*args)
                     ", __FILE__, __LINE__ - 6
         else
           @info.code.instance_eval "def #{func[:name]}(*args)
@@ -187,12 +141,7 @@ module SimInfra
                     ", __FILE__, __LINE__ - 4
         end
       end
-                    ", __FILE__, __LINE__ - 4
-        end
-      end
 
-      @info.map = Scope.new(nil)
-    end
       @info.map = Scope.new(nil)
     end
 
@@ -211,14 +160,7 @@ module SimInfra
 
   def Instruction(name, &block)
     module_name = caller[0].split('\'')[1].split(':')[1][0..-2]
-  def Instruction(name, &block)
-    module_name = caller[0].split('\'')[1].split(':')[1][0..-2]
 
-    bldr = InstructionInfoBuilder.new(name, module_name.to_sym)
-    bldr.instance_eval(&block)
-    @@instructions << bldr.info
-    nil # only for debugging in IRB
-  end
     bldr = InstructionInfoBuilder.new(name, module_name.to_sym)
     bldr.instance_eval(&block)
     @@instructions << bldr.info
@@ -281,20 +223,7 @@ module SimInfra
       @name = name
       @regs = []
     end
-  class RegisterFileInfo
-    attr_accessor :name, :regs
 
-    def initialize(name)
-      @name = name
-      @regs = []
-    end
-
-    def to_h
-      {
-        name: @name,
-        regs: @regs.map(&:to_h)
-      }
-    end
     def to_h
       {
         name: @name,
@@ -308,21 +237,7 @@ module SimInfra
       rf
     end
   end
-    def self.from_h(h)
-      rf = new(h[:name])
-      rf.regs = h[:regs].map { |r| Register.from_h(r) }
-      rf
-    end
-  end
 
-  class Register
-    attr_reader :name, :size, :attrs
-
-    def initialize(name, size, attrs)
-      @name = name
-      @size = size
-      @attrs = attrs
-    end
   class Register
     attr_reader :name, :size, :attrs
 
@@ -339,18 +254,7 @@ module SimInfra
         attrs: @attrs
       }
     end
-    def to_h
-      {
-        name: @name,
-        size: @size,
-        attrs: @attrs
-      }
-    end
 
-    def self.from_h(h)
-      new(h[:name], h[:size], h[:attrs])
-    end
-  end
     def self.from_h(h)
       new(h[:name], h[:size], h[:attrs])
     end
@@ -386,16 +290,7 @@ module SimInfra
     @@regfiles << bldr.info
     nil
   end
-  def RegisterFile(name, &block)
-    bldr = RegisterFileBuilder.new(name)
-    bldr.instance_eval(&block)
-    @@regfiles << bldr.info
-    nil
-  end
 
-  def RegFiles
-    @@regfiles
-  end
   def RegFiles
     @@regfiles
   end
@@ -407,18 +302,7 @@ module SimInfra
     def r32(sym, *args)
       @info.regs << Register.new(sym, 32, args[0] ? [args[0]] : [])
     end
-  class RegisterFileBuilder
-    def r32(sym, *args)
-      @info.regs << Register.new(sym, 32, args[0] ? [args[0]] : [])
-    end
 
-    def f64(sym, *args)
-      @info.regs << Register.new(sym, 64, args[0] ? [args[0]] : [])
-    end
-
-    def zero
-      :zero
-    end
     def f64(sym, *args)
       @info.regs << Register.new(sym, 64, args[0] ? [args[0]] : [])
     end
@@ -431,31 +315,7 @@ module SimInfra
       :pc
     end
   end
-    def pc
-      :pc
-    end
-  end
 
-  class InstructionInfoBuilder
-    def code(&block)
-      unless @info.map_code_blocks.empty?
-        @info.fields.each do |f|
-          @info.map.method(f.value.name, f.value.type)
-        end
-      end
-      @info.map_code_blocks.each do |k, v|
-        @info.map.instance_eval v[1]
-      end
-      @info.map_code_blocks.each do |k, v|
-        @info.code.method(k, v[0], @info.map.vars[k].regset)
-      end
-      for regfile in @@regfiles
-        for reg in regfile.regs
-          @info.code.method(reg.name, ('r' + reg.size.to_s).to_sym)
-        end
-      end
-      @info.code.instance_eval(&block)
-    end
   class InstructionInfoBuilder
     def code(&block)
       unless @info.map_code_blocks.empty?
@@ -505,10 +365,6 @@ module SimInfra
       scope
     end
 
-    def asm(&block)
-      @info.asm_str = instance_eval(&block)
-    end
-  end
     def asm(&block)
       @info.asm_str = instance_eval(&block)
     end
