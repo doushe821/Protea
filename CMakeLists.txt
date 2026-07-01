@@ -29,6 +29,7 @@ include(cmake/CompilerConfig.cmake)
 if(PROTEA_BUILD_TESTS)
   enable_testing()
 endif()
+include(cmake/softfloat.cmake)
 
 add_subdirectory(lib)
 add_subdirectory(sim_lib)
