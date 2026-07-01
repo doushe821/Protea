@@ -53,7 +53,7 @@ target_include_directories(sim_native PRIVATE
   ${protea_simlib_SOURCE_DIR}
 )
 
-target_link_libraries(sim_native PRIVATE elfio CLI11 fmt)
+target_link_libraries(sim_native PRIVATE elfio CLI11 fmt softfloat)
 target_compile_features(sim_native PRIVATE cxx_std_23)
 add_dependencies(sim_native native_sim_gen)
 add_dependencies(sim_native native_gen)

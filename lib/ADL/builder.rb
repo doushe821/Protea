@@ -1,3 +1,6 @@
+# PROPOSAL:
+# Autoformatter works on file save, so I had no choice)
+# (autoformatted)
 require_relative 'scope'
 require 'Utility/type'
 
